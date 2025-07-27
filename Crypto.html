@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TELE BIRR - USDT Payment</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', Arial, sans-serif;
+            background: url('https://i.gifer.com/7Khx.gif') center center fixed;
+            background-size: cover;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(101, 45, 144, 0.8) 0%, rgba(40, 40, 120, 0.9) 100%);
+            z-index: -1;
+        }
+        
+        .container {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            margin: 20px;
+            width: 90%;
+        }
+        
+        h1 {
+            color: #ff6b9e;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        h3 {
+            color: #ffb347;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+        }
+        
+        p {
+            font-size: 1.1em;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .trc-address {
+            background-color: rgba(40, 40, 120, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            word-break: break-all;
+            border: 1px solid #ff6b9e;
+            margin: 20px 0;
+        }
+        
+        .payment-amount {
+            color: #ffb347;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        
+        img {
+            max-width: 100%;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 2px solid #ff6b9e;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        input[type="text"], input[type="file"] {
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: none;
+            width: 100%;
+            font-size: 1em;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-sizing: border-box;
+        }
+        
+        input[type="file"] {
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 15px;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #ff6b9e, #ff8a65);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(45deg, #ff8a65, #ff6b9e);
+        }
+        
+        .floating-coins {
+            position: absolute;
+            width: 100px;
+            opacity: 0.7;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .coin1 {
+            top: 10%;
+            left: 5%;
+            animation-delay: 0s;
+        }
+        
+        .coin2 {
+            top: 70%;
+            right: 8%;
+            animation-delay: 1s;
+        }
+        
+        .coin3 {
+            bottom: 15%;
+            left: 10%;
+            animation-delay: 2s;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.5em;
+            }
+            
+            .trc-address {
+                font-size: 1em;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <img src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png" class="floating-coins coin1" alt="crypto coin">
+    <img src="https://cryptologos.cc/logos/tron-trx-logo.png" class="floating-coins coin2" alt="crypto coin">
+    <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" class="floating-coins coin3" alt="crypto coin">
+    
+    <div class="container">
+        <h1>የሚከፍሉበት TRC20 (TRON Address) ከታች አለ</h1>
+        <div class="trc-address">TPPtCP3eYJwD6XUYVZ5VAZ3A4iDkW9xRHe</div>
+        <div class="payment-amount">የክፍያ መጠን: 10 USDT (VIP Service) አንድ ጊዜ ብቻ ይከፈላል!</div>
+        <img src="trc.jpg" alt="TRON address QR code">
+        <p>ክፍያው ከከፈሉ በኋላ የክፍያ �ረጃ (screenshot) ከታች ያስገቡ</p>
+        <input type="file" name="payment-proof" id="payment-proof" />
+    </div>
+    
+    <div class="container">
+        <h3>ክፍያውን ከፍለው ከጨረሱ የእርስዎን ስልክ ቁጥር ከታች ያስገቡ</h3>
+        <p>በሚያስገቡት ቁጥር ቴሌግራም አካዉንት እናወራዎታለን</p>
+        <div class="input-group">
+            <input type="tel" id="phoneNumber" placeholder="ስልክ ቁጥር ያስገቡ" required>
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
+<script>
+    document.getElementById('sendButton').addEventListener('click', async function() {
+        const phoneNumber = document.getElementById('phoneNumber').value;
+        const fileInput = document.getElementById('payment-proof');
+        const trcAddress = document.querySelector('.trc-address').textContent;
+        const paymentAmount = document.querySelector('.payment-amount').textContent;
+        
+        if (!phoneNumber) {
+            alert('እባክዎ ስልክ ቁጥርዎን ያስገቡ!');
+            return;
+        }
+        
+        if (!fileInput.files || fileInput.files.length === 0) {
+            alert('እባክዎ የክፍያ ማረጋገጫ ፋይል ይምረጡ!');
+            return;
+        }
+        
+        try {
+            // First send the text information
+            const textResponse = await fetch(`https://api.telegram.org/bot7826950594:AAFBygBD_E2PmAITI6zsaPilys7l6i0gWBU/sendMessage`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    chat_id: '894002841',
+                    text: `New USDT Payment Submission:\n\n📱 Phone: ${phoneNumber}\n💰 Amount: ${paymentAmount}\n🔗 TRC20 Address: ${trcAddress}`
+                })
+            });
+            
+            // Then send the file
+            const formData = new FormData();
+            formData.append('chat_id', '894002841');
+            formData.append('document', fileInput.files[0]);
+            formData.append('caption', `Payment proof from ${phoneNumber}`);
+            
+            const fileResponse = await fetch(`https://api.telegram.org/bot7826950594:AAFBygBD_E2PmAITI6zsaPilys7l6i0gWBU/sendDocument`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (textResponse.ok && fileResponse.ok) {
+                alert('መረጃዎ ተላልፏል! በቅርብ ጊዜ እንገናኝዎታለን።');
+            } else {
+                alert('ስህተት ተከስቷል። እባክዎ ቆይተው እንደገና ይሞክሩ!');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('ስህተት ተከስቷል። እባክዎ ቆይተው እንደገና ይሞክሩ!');
+        }
+    });
+</script>
+</body>
+</html>
