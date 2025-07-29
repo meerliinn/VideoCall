@@ -156,60 +156,53 @@
 
         // Generate referral code
         function generateReferralCode() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            let result = '';
-            for (let i = 0; i < 6; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
+            return Math.random().toString(36).substring(2, 10).toUpperCase();
         }
 
         // Sign up function
-        function signUp() {
+        async function signUp() {
             const email = document.getElementById('signup-email').value;
             const password = document.getElementById('signup-password').value;
             const referralCode = document.getElementById('referral-code-input').value || urlReferralCode;
 
-            auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    const userRefCode = generateReferralCode();
-                    
-                    // Save user data with referral code
-                    return db.collection('users').doc(user.uid).set({
-                        email: email,
-                        referralCode: userRefCode,
-                        referredBy: referralCode || null,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        points: 0
-                    });
-                })
-                .then(() => {
-                    showMessage('Account created successfully! Redirecting...', 'success');
-                    setTimeout(() => {
-                        window.location.href = 'home.html';
-                    }, 1500);
-                })
-                .catch((error) => {
-                    showMessage(error.message, 'error');
+            try {
+                // Create user
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                // Generate referral code
+                const userRefCode = generateReferralCode();
+                
+                // Save user data
+                await db.collection('users').doc(user.uid).set({
+                    email: email,
+                    referralCode: userRefCode,
+                    referredBy: referralCode || null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    points: 0
                 });
+
+                showMessage('Account created! Redirecting...', 'success');
+                setTimeout(() => window.location.href = 'home.html', 1500);
+                
+            } catch (error) {
+                showMessage(error.message, 'error');
+                console.error("Signup error:", error);
+            }
         }
 
         // Login function
-        function login() {
+        async function login() {
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
 
-            auth.signInWithEmailAndPassword(email, password)
-                .then(() => {
-                    showLoginMessage('Login successful! Redirecting...', 'success');
-                    setTimeout(() => {
-                        window.location.href = 'home.html';
-                    }, 1500);
-                })
-                .catch((error) => {
-                    showLoginMessage(error.message, 'error');
-                });
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                showLoginMessage('Login successful! Redirecting...', 'success');
+                setTimeout(() => window.location.href = 'home.html', 1500);
+            } catch (error) {
+                showLoginMessage(error.message, 'error');
+            }
         }
 
         // Message display functions
@@ -225,11 +218,9 @@
             msgDiv.className = type;
         }
 
-        // Check if user is already logged in
+        // Check auth state
         auth.onAuthStateChanged((user) => {
-            if (user) {
-                window.location.href = 'home.html';
-            }
+            if (user) window.location.href = 'home.html';
         });
     </script>
 </body>
