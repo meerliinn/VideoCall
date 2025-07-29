@@ -64,6 +64,24 @@
         .copy-btn:hover {
             background-color: #2980b9;
         }
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .stat-box {
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            flex: 1;
+            margin: 0 5px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
         .social-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -132,6 +150,17 @@
         
         <h2>Invite Friends & Earn <span class="highlight">10 Points</span> Each</h2>
         <p style="text-align: center;">Share your unique referral code with friends and earn points when they sign up!</p>
+        
+        <div class="stats-container">
+            <div class="stat-box">
+                <div class="stat-value" id="totalReferrals">0</div>
+                <div>Total Referrals</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="totalPoints">0</div>
+                <div>Total Points</div>
+            </div>
+        </div>
         
         <div class="referral-box">
             <div class="code-display">
@@ -209,6 +238,8 @@
         // DOM elements
         const referralCodeInput = document.getElementById('referral-code');
         const referralLinkInput = document.getElementById('referral-link');
+        const totalReferralsEl = document.getElementById('totalReferrals');
+        const totalPointsEl = document.getElementById('totalPoints');
 
         // Check authentication state
         auth.onAuthStateChanged(async (user) => {
@@ -230,10 +261,13 @@
                     await userRef.set({
                         referralCode: referralCode,
                         points: 0,
+                        invitedUsers: [],
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     }, { merge: true });
                 } else {
                     referralCode = doc.data().referralCode;
+                    // Update stats
+                    updateReferralStats(doc.data());
                 }
                 
                 // Update UI with correct path
@@ -245,6 +279,15 @@
                 alert("Error loading referral data. Please refresh.");
             }
         });
+
+        // Update referral stats
+        function updateReferralStats(userData) {
+            const referralCount = userData.invitedUsers ? userData.invitedUsers.length : 0;
+            const pointsEarned = userData.points || 0;
+            
+            totalReferralsEl.textContent = referralCount;
+            totalPointsEl.textContent = pointsEarned;
+        }
 
         // Copy functions
         function copyCode() {
