@@ -192,7 +192,7 @@
             <i class="fas fa-arrow-left"></i> Back to Dashboard
         </button>
     </div>
- 
+
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -222,61 +222,52 @@
             if (!user) {
                 window.location.href = 'index.html';
             } else {
-                initializeUserData(user);
+                checkAndGenerateReferralCode(user.uid);
             }
         });
 
-        // Initialize user data with referral code
-        async function initializeUserData(user) {
+        // Check if user has referral code, generate if not
+        async function checkAndGenerateReferralCode(userId) {
             try {
-                const userDoc = await db.collection('users').doc(user.uid).get();
+                const userRef = db.collection('users').doc(userId);
+                const doc = await userRef.get();
                 
-                if (userDoc.exists) {
-                    // User exists, load their data
-                    const userData = userDoc.data();
-                    if (userData.referralCode) {
-                        updateReferralUI(userData.referralCode);
-                    } else {
-                        // Generate and save new referral code
-                        await createReferralCode(user.uid);
-                    }
-                } else {
+                if (!doc.exists) {
                     // New user - create document with referral code
-                    await createReferralCode(user.uid);
+                    const referralCode = generateRandomCode(8);
+                    await userRef.set({
+                        referralCode: referralCode,
+                        points: 0,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    updateReferralUI(referralCode);
+                } else if (!doc.data().referralCode) {
+                    // Existing user without referral code
+                    const referralCode = generateRandomCode(8);
+                    await userRef.update({
+                        referralCode: referralCode
+                    });
+                    updateReferralUI(referralCode);
+                } else {
+                    // User already has referral code
+                    updateReferralUI(doc.data().referralCode);
                 }
             } catch (error) {
-                console.error("Error handling user data:", error);
-                showAlert("Error loading referral data. Please try again.");
-            }
-        }
-
-        // Create new referral code for user
-        async function createReferralCode(userId) {
-            const referralCode = generateRandomCode(8);
-            try {
-                await db.collection('users').doc(userId).set({
-                    referralCode: referralCode,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    points: 0
-                }, { merge: true });
-                
-                updateReferralUI(referralCode);
-            } catch (error) {
-                console.error("Error creating referral code:", error);
-                showAlert("Error generating referral code. Please refresh the page.");
+                console.error("Error handling referral code:", error);
+                showAlert("Error loading referral program. Please refresh the page.");
             }
         }
 
         // Update the UI with referral information
         function updateReferralUI(referralCode) {
             referralCodeInput.value = referralCode;
-            // Update this URL to match your actual deployment URL
+            // Use the correct path to your index.html file
             referralLinkInput.value = `${window.location.origin}/index.html?ref=${referralCode}`;
         }
 
-        // Generate random code (alphanumeric)
+        // Generate random code (alphanumeric without confusing characters)
         function generateRandomCode(length) {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed ambiguous characters
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             let result = '';
             for (let i = 0; i < length; i++) {
                 result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -297,7 +288,7 @@
             showAlert('Referral link copied to clipboard!');
         }
 
-        // Social share functions (unchanged)
+        // Social share functions
         function shareFacebook() {
             const link = encodeURIComponent(referralLinkInput.value);
             const text = encodeURIComponent("Join me using my referral link and get 10 bonus points!");
