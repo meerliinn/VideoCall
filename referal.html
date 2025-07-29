@@ -8,18 +8,27 @@
             margin: 0;
             padding: 20px;
             background-color: #f4f4f4;
+            color: #333;
         }
         .container {
-            max-width: 800px;
+            max-width: 500px;
             margin: 0 auto;
             background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
         }
         h1 {
-            color: #333;
+            margin-bottom: 5px;
+        }
+        .subtitle {
             text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
         }
         .referral-box {
             background-color: #f8f9fa;
@@ -28,26 +37,32 @@
             margin: 20px 0;
         }
         .code-display {
-            display: flex;
             margin: 15px 0;
         }
         .code-display input {
-            flex: 1;
-            padding: 10px;
+            width: 100%;
+            padding: 12px;
             border: 1px solid #ddd;
-            border-radius: 4px 0 0 4px;
+            border-radius: 6px;
             font-size: 16px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: bold;
         }
-        .code-display button {
-            padding: 10px 15px;
-            background-color: #007bff;
+        .copy-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #3498db;
             color: white;
             border: none;
-            border-radius: 0 4px 4px 0;
+            border-radius: 6px;
             cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
         }
-        .code-display button:hover {
-            background-color: #0056b3;
+        .copy-btn:hover {
+            background-color: #2980b9;
         }
         .social-share {
             display: flex;
@@ -59,49 +74,61 @@
         .social-btn {
             padding: 10px 15px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             color: white;
             cursor: pointer;
             font-weight: bold;
             display: flex;
             align-items: center;
             gap: 5px;
+            transition: transform 0.2s;
+        }
+        .social-btn:hover {
+            transform: translateY(-2px);
         }
         .facebook { background-color: #3b5998; }
         .twitter { background-color: #1da1f2; }
         .whatsapp { background-color: #25d366; }
         .telegram { background-color: #0088cc; }
-        .email { background-color: #6c757d; }
+        .email { background-color: #7f8c8d; }
         .back-btn {
             display: block;
             width: 100%;
-            padding: 10px;
-            background-color: #6c757d;
+            padding: 12px;
+            background-color: #95a5a6;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             margin-top: 20px;
             text-align: center;
+            font-size: 16px;
+            transition: background-color 0.3s;
         }
         .back-btn:hover {
-            background-color: #5a6268;
+            background-color: #7f8c8d;
         }
         .how-it-works {
             margin: 30px 0;
             padding: 20px;
-            background-color: #f1f8ff;
+            background-color: #ecf0f1;
             border-radius: 8px;
         }
         .how-it-works h3 {
             margin-top: 0;
-            color: #0056b3;
+            color: #2c3e50;
+            text-align: center;
         }
         .how-it-works ol {
             padding-left: 20px;
         }
         .how-it-works li {
             margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #e74c3c;
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -109,21 +136,26 @@
 <body>
     <div class="container">
         <h1>Referral Program</h1>
+        <div class="subtitle">meerlinn.github.io/VideoCall/invite.html</div>
+        
+        <h2>Invite Friends & Earn <span class="highlight">10 Points</span> Each</h2>
+        <p style="text-align: center;">Share your unique referral code with friends and earn points when they sign up!</p>
         
         <div class="referral-box">
-            <h2>Invite Friends & Earn 10 Points Each</h2>
-            <p>Share your unique referral code with friends and earn points when they sign up!</p>
-            
-            <label>Your Referral Code:</label>
             <div class="code-display">
+                <label>Your Referral Code:</label>
                 <input type="text" id="referral-code" readonly>
-                <button onclick="copyCode()"><i class="fas fa-copy"></i> Copy</button>
+                <button class="copy-btn" onclick="copyCode()">
+                    <i class="fas fa-copy"></i> Copy Code
+                </button>
             </div>
             
-            <label>Your Referral Link:</label>
             <div class="code-display">
+                <label>Your Referral Link:</label>
                 <input type="text" id="referral-link" readonly>
-                <button onclick="copyLink()"><i class="fas fa-copy"></i> Copy</button>
+                <button class="copy-btn" onclick="copyLink()">
+                    <i class="fas fa-copy"></i> Copy Link
+                </button>
             </div>
         </div>
         
@@ -151,14 +183,14 @@
             <ol>
                 <li>Share your referral link or code with friends</li>
                 <li>They sign up using your link or enter your code</li>
-                <li>You earn <strong>10 points</strong> for each successful referral</li>
+                <li>You earn <span class="highlight">10 points</span> for each successful referral</li>
                 <li>Redeem your points for rewards in the rewards section</li>
             </ol>
         </div>
         
-        <a href="home.html" class="back-btn">
+        <button class="back-btn" onclick="window.location.href='home.html'">
             <i class="fas fa-arrow-left"></i> Back to Dashboard
-        </a>
+        </button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -200,29 +232,62 @@
                 .then((doc) => {
                     if (doc.exists) {
                         const userData = doc.data();
-                        referralCodeInput.value = userData.referralCode;
-                        referralLinkInput.value = `${window.location.origin}/index.html?ref=${userData.referralCode}`;
+                        if (userData.referralCode) {
+                            referralCodeInput.value = userData.referralCode;
+                            referralLinkInput.value = `https://meerlinn.github.io/VideoCall/index.html?ref=${userData.referralCode}`;
+                        } else {
+                            // Generate a new referral code if none exists
+                            generateAndSaveReferralCode(userId);
+                        }
                     }
+                })
+                .catch((error) => {
+                    console.error("Error loading user data:", error);
                 });
+        }
+
+        // Generate and save referral code
+        function generateAndSaveReferralCode(userId) {
+            const referralCode = generateRandomCode(8);
+            db.collection('users').doc(userId).update({
+                referralCode: referralCode
+            })
+            .then(() => {
+                referralCodeInput.value = referralCode;
+                referralLinkInput.value = `https://meerlinn.github.io/VideoCall/index.html?ref=${referralCode}`;
+            })
+            .catch((error) => {
+                console.error("Error saving referral code:", error);
+            });
+        }
+
+        // Generate random code
+        function generateRandomCode(length) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
         }
 
         // Copy functions
         function copyCode() {
             referralCodeInput.select();
             document.execCommand('copy');
-            alert('Referral code copied to clipboard!');
+            showAlert('Referral code copied to clipboard!');
         }
 
         function copyLink() {
             referralLinkInput.select();
             document.execCommand('copy');
-            alert('Referral link copied to clipboard!');
+            showAlert('Referral link copied to clipboard!');
         }
 
         // Social share functions
         function shareFacebook() {
             const link = encodeURIComponent(referralLinkInput.value);
-            const text = encodeURIComponent("Join me and get 10 bonus points when you sign up with my referral code!");
+            const text = encodeURIComponent("Join me using my referral link and get 10 bonus points!");
             window.open(`https://www.facebook.com/sharer/sharer.php?u=${link}&quote=${text}`, '_blank');
         }
 
@@ -249,6 +314,11 @@
             const subject = encodeURIComponent("Join me with this referral link!");
             const body = encodeURIComponent(`Hi,\n\nI thought you might be interested in joining. If you sign up using my referral link below, you'll get 10 bonus points!\n\n${link}\n\nThanks!`);
             window.open(`mailto:?subject=${subject}&body=${body}`);
+        }
+
+        // Simple alert function
+        function showAlert(message) {
+            alert(message);
         }
     </script>
 </body>
