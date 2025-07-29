@@ -192,7 +192,7 @@
             <i class="fas fa-arrow-left"></i> Back to Dashboard
         </button>
     </div>
-
+ 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -209,7 +209,7 @@
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
+        const app = firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
@@ -222,48 +222,61 @@
             if (!user) {
                 window.location.href = 'index.html';
             } else {
-                loadUserData(user.uid);
+                initializeUserData(user);
             }
         });
 
-        // Load user data
-        function loadUserData(userId) {
-            db.collection('users').doc(userId).get()
-                .then((doc) => {
-                    if (doc.exists) {
-                        const userData = doc.data();
-                        if (userData.referralCode) {
-                            referralCodeInput.value = userData.referralCode;
-                            referralLinkInput.value = `https://meerlinn.github.io/VideoCall/index.html?ref=${userData.referralCode}`;
-                        } else {
-                            // Generate a new referral code if none exists
-                            generateAndSaveReferralCode(userId);
-                        }
+        // Initialize user data with referral code
+        async function initializeUserData(user) {
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                
+                if (userDoc.exists) {
+                    // User exists, load their data
+                    const userData = userDoc.data();
+                    if (userData.referralCode) {
+                        updateReferralUI(userData.referralCode);
+                    } else {
+                        // Generate and save new referral code
+                        await createReferralCode(user.uid);
                     }
-                })
-                .catch((error) => {
-                    console.error("Error loading user data:", error);
-                });
+                } else {
+                    // New user - create document with referral code
+                    await createReferralCode(user.uid);
+                }
+            } catch (error) {
+                console.error("Error handling user data:", error);
+                showAlert("Error loading referral data. Please try again.");
+            }
         }
 
-        // Generate and save referral code
-        function generateAndSaveReferralCode(userId) {
+        // Create new referral code for user
+        async function createReferralCode(userId) {
             const referralCode = generateRandomCode(8);
-            db.collection('users').doc(userId).update({
-                referralCode: referralCode
-            })
-            .then(() => {
-                referralCodeInput.value = referralCode;
-                referralLinkInput.value = `https://meerlinn.github.io/VideoCall/index.html?ref=${referralCode}`;
-            })
-            .catch((error) => {
-                console.error("Error saving referral code:", error);
-            });
+            try {
+                await db.collection('users').doc(userId).set({
+                    referralCode: referralCode,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    points: 0
+                }, { merge: true });
+                
+                updateReferralUI(referralCode);
+            } catch (error) {
+                console.error("Error creating referral code:", error);
+                showAlert("Error generating referral code. Please refresh the page.");
+            }
         }
 
-        // Generate random code
+        // Update the UI with referral information
+        function updateReferralUI(referralCode) {
+            referralCodeInput.value = referralCode;
+            // Update this URL to match your actual deployment URL
+            referralLinkInput.value = `${window.location.origin}/index.html?ref=${referralCode}`;
+        }
+
+        // Generate random code (alphanumeric)
         function generateRandomCode(length) {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed ambiguous characters
             let result = '';
             for (let i = 0; i < length; i++) {
                 result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -284,7 +297,7 @@
             showAlert('Referral link copied to clipboard!');
         }
 
-        // Social share functions
+        // Social share functions (unchanged)
         function shareFacebook() {
             const link = encodeURIComponent(referralLinkInput.value);
             const text = encodeURIComponent("Join me using my referral link and get 10 bonus points!");
@@ -316,7 +329,6 @@
             window.open(`mailto:?subject=${subject}&body=${body}`);
         }
 
-        // Simple alert function
         function showAlert(message) {
             alert(message);
         }
