@@ -34,6 +34,30 @@
             font-weight: bold;
             margin: 10px 0;
         }
+        .invited-users {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .invited-users h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .user-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .user-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        .no-users {
+            color: #6c757d;
+            font-style: italic;
+        }
         .nav-menu {
             display: flex;
             justify-content: space-around;
@@ -82,6 +106,13 @@
             <div>Your Points Balance</div>
             <div class="balance-amount" id="points-balance">0</div>
             <div>Points</div>
+        </div>
+        
+        <div class="invited-users">
+            <h3>Your Invited Users</h3>
+            <div class="user-list" id="invitedUsersList">
+                <div class="no-users">Loading...</div>
+            </div>
         </div>
         
         <div class="nav-menu">
@@ -133,15 +164,57 @@
             }
         });
 
-        // Load user data
+        // Load user data with invited users
         function loadUserData(userId) {
             db.collection('users').doc(userId).get()
                 .then((doc) => {
                     if (doc.exists) {
                         const userData = doc.data();
                         document.getElementById('points-balance').textContent = userData.points || 0;
+                        
+                        // Load invited users
+                        loadInvitedUsers(userData.invitedUsers || []);
                     }
                 });
+        }
+
+        // Load and display invited users
+        async function loadInvitedUsers(userIds) {
+            const userList = document.getElementById('invitedUsersList');
+            
+            if (userIds.length === 0) {
+                userList.innerHTML = '<div class="no-users">No invited users yet</div>';
+                return;
+            }
+
+            userList.innerHTML = '<div>Loading users...</div>';
+            
+            try {
+                const usersSnapshot = await db.collection('users')
+                    .where(firebase.firestore.FieldPath.documentId(), 'in', userIds)
+                    .get();
+
+                userList.innerHTML = '';
+                
+                if (usersSnapshot.empty) {
+                    userList.innerHTML = '<div class="no-users">No user details found</div>';
+                    return;
+                }
+
+                usersSnapshot.forEach(doc => {
+                    const userData = doc.data();
+                    const userItem = document.createElement('div');
+                    userItem.className = 'user-item';
+                    userItem.innerHTML = `
+                        <span>${userData.email}</span>
+                        <span>+10 points</span>
+                    `;
+                    userList.appendChild(userItem);
+                });
+            } catch (error) {
+                console.error("Error loading invited users:", error);
+                userList.innerHTML = '<div class="no-users">Error loading users</div>';
+            }
         }
 
         // Logout function
