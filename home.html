@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .balance-card {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .balance-amount {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .nav-menu {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+        }
+        .nav-btn {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            flex: 1;
+            margin: 0 10px;
+            transition: all 0.3s;
+        }
+        .nav-btn:hover {
+            background-color: #e9ecef;
+            transform: translateY(-3px);
+        }
+        .nav-btn i {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .logout-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to Your Account</h1>
+        
+        <div class="balance-card">
+            <div>Your Points Balance</div>
+            <div class="balance-amount" id="points-balance">0</div>
+            <div>Points</div>
+        </div>
+        
+        <div class="nav-menu">
+            <div class="nav-btn" onclick="window.location.href='referral.html'">
+                <i class="fas fa-share-alt"></i>
+                <div>Referral Program</div>
+            </div>
+            <div class="nav-btn" onclick="alert('Coming soon!')">
+                <i class="fas fa-gift"></i>
+                <div>Rewards</div>
+            </div>
+            <div class="nav-btn" onclick="alert('Coming soon!')">
+                <i class="fas fa-history"></i>
+                <div>History</div>
+            </div>
+        </div>
+        
+        <button class="logout-btn" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i> Log Out
+        </button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA7pTxdBnJhW170qADnz8w08IWwRsm4KDE",
+            authDomain: "mywebproject.firebaseapp.com",
+            projectId: "mywebproject-5ba04",
+            storageBucket: "mywebproject-5ba04.appspot.com",
+            messagingSenderId: "588440546744",
+            appId: "1:588440546744:web:319fee1dfd203c5469334d"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Check authentication state
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+            } else {
+                loadUserData(user.uid);
+            }
+        });
+
+        // Load user data
+        function loadUserData(userId) {
+            db.collection('users').doc(userId).get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        document.getElementById('points-balance').textContent = userData.points || 0;
+                    }
+                });
+        }
+
+        // Logout function
+        function logout() {
+            auth.signOut()
+                .then(() => {
+                    window.location.href = 'index.html';
+                });
+        }
+    </script>
+</body>
+</html>
