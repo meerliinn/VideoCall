@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Referral Program</title>
+    <title>Referral Program - VideoCall</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -128,7 +128,7 @@
 <body>
     <div class="container">
         <h1>Referral Program</h1>
-        <div class="subtitle">meerlinn.github.io/VideoCall/referral.html</div>
+        <div class="subtitle">meerliinn.github.io/VideoCall/</div>
         
         <h2>Invite Friends & Earn <span class="highlight">10 Points</span> Each</h2>
         <p style="text-align: center;">Share your unique referral code with friends and earn points when they sign up!</p>
@@ -236,9 +236,9 @@
                     referralCode = doc.data().referralCode;
                 }
                 
-                // Update UI
+                // Update UI with correct path
                 referralCodeInput.value = referralCode;
-                referralLinkInput.value = `${window.location.origin}/sign.html?ref=${referralCode}`;
+                referralLinkInput.value = `https://meerliinn.github.io/VideoCall/sign.html?ref=${referralCode}`;
                 
             } catch (error) {
                 console.error("Error:", error);
