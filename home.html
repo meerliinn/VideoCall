@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Home</title>
+    <title>Dashboard</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -10,7 +10,7 @@
             background-color: #f4f4f4;
         }
         .container {
-            max-width: 800px;
+            max-width: 600px;
             margin: 0 auto;
             background-color: #fff;
             padding: 30px;
@@ -83,7 +83,7 @@
             <div class="balance-amount" id="points-balance">0</div>
             <div>Points</div>
         </div>
-        <a href="invite.html">invit</a>
+        
         <div class="nav-menu">
             <div class="nav-btn" onclick="window.location.href='referral.html'">
                 <i class="fas fa-share-alt"></i>
@@ -127,7 +127,7 @@
         // Check authentication state
         auth.onAuthStateChanged((user) => {
             if (!user) {
-                window.location.href = 'index.html';
+                window.location.href = 'sign.html';
             } else {
                 loadUserData(user.uid);
             }
@@ -148,7 +148,7 @@
         function logout() {
             auth.signOut()
                 .then(() => {
-                    window.location.href = 'index.html';
+                    window.location.href = 'sign.html';
                 });
         }
     </script>
