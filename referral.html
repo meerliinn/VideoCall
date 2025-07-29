@@ -64,33 +64,25 @@
         .copy-btn:hover {
             background-color: #2980b9;
         }
-        .social-share {
-            display: flex;
-            justify-content: center;
+        .social-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
             gap: 10px;
-            margin: 25px 0;
-            flex-wrap: wrap;
+            margin: 20px 0;
         }
-        .social-btn {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 6px;
-            color: white;
-            cursor: pointer;
-            font-weight: bold;
+        .social-grid-btn {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 5px;
-            transition: transform 0.2s;
+            padding: 10px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
         }
-        .social-btn:hover {
-            transform: translateY(-2px);
+        .social-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
         }
-        .facebook { background-color: #3b5998; }
-        .twitter { background-color: #1da1f2; }
-        .whatsapp { background-color: #25d366; }
-        .telegram { background-color: #0088cc; }
-        .email { background-color: #7f8c8d; }
         .back-btn {
             display: block;
             width: 100%;
@@ -136,7 +128,7 @@
 <body>
     <div class="container">
         <h1>Referral Program</h1>
-        <div class="subtitle">meerlinn.github.io/VideoCall/invite.html</div>
+        <div class="subtitle">meerlinn.github.io/VideoCall/referral.html</div>
         
         <h2>Invite Friends & Earn <span class="highlight">10 Points</span> Each</h2>
         <p style="text-align: center;">Share your unique referral code with friends and earn points when they sign up!</p>
@@ -160,21 +152,22 @@
         </div>
         
         <h3>Share Your Link</h3>
-        <div class="social-share">
-            <button class="social-btn facebook" onclick="shareFacebook()">
-                <i class="fab fa-facebook-f"></i> Facebook
+        <div class="social-grid">
+            <button class="social-grid-btn" onclick="shareFacebook()">
+                <i class="fab fa-facebook-f social-icon"></i>
+                <span>Facebook</span>
             </button>
-            <button class="social-btn twitter" onclick="shareTwitter()">
-                <i class="fab fa-twitter"></i> Twitter
+            <button class="social-grid-btn" onclick="shareTwitter()">
+                <i class="fab fa-twitter social-icon"></i>
+                <span>Twitter</span>
             </button>
-            <button class="social-btn whatsapp" onclick="shareWhatsApp()">
-                <i class="fab fa-whatsapp"></i> WhatsApp
+            <button class="social-grid-btn" onclick="shareWhatsApp()">
+                <i class="fab fa-whatsapp social-icon"></i>
+                <span>WhatsApp</span>
             </button>
-            <button class="social-btn telegram" onclick="shareTelegram()">
-                <i class="fab fa-telegram-plane"></i> Telegram
-            </button>
-            <button class="social-btn email" onclick="shareEmail()">
-                <i class="fas fa-envelope"></i> Email
+            <button class="social-grid-btn" onclick="shareTelegram()">
+                <i class="fab fa-telegram-plane social-icon"></i>
+                <span>Telegram</span>
             </button>
         </div>
         
@@ -209,7 +202,7 @@
         };
 
         // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
@@ -218,110 +211,73 @@
         const referralLinkInput = document.getElementById('referral-link');
 
         // Check authentication state
-        auth.onAuthStateChanged((user) => {
+        auth.onAuthStateChanged(async (user) => {
             if (!user) {
-                window.location.href = 'index.html';
-            } else {
-                checkAndGenerateReferralCode(user.uid);
+                window.location.href = 'sign.html';
+                return;
             }
-        });
 
-        // Check if user has referral code, generate if not
-        async function checkAndGenerateReferralCode(userId) {
             try {
-                const userRef = db.collection('users').doc(userId);
+                // Get user document
+                const userRef = db.collection('users').doc(user.uid);
                 const doc = await userRef.get();
                 
-                if (!doc.exists) {
-                    // New user - create document with referral code
-                    const referralCode = generateRandomCode(8);
+                let referralCode;
+                
+                if (!doc.exists || !doc.data().referralCode) {
+                    // Generate new referral code
+                    referralCode = Math.random().toString(36).substring(2, 10).toUpperCase();
                     await userRef.set({
                         referralCode: referralCode,
                         points: 0,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    updateReferralUI(referralCode);
-                } else if (!doc.data().referralCode) {
-                    // Existing user without referral code
-                    const referralCode = generateRandomCode(8);
-                    await userRef.update({
-                        referralCode: referralCode
-                    });
-                    updateReferralUI(referralCode);
+                    }, { merge: true });
                 } else {
-                    // User already has referral code
-                    updateReferralUI(doc.data().referralCode);
+                    referralCode = doc.data().referralCode;
                 }
+                
+                // Update UI
+                referralCodeInput.value = referralCode;
+                referralLinkInput.value = `${window.location.origin}/sign.html?ref=${referralCode}`;
+                
             } catch (error) {
-                console.error("Error handling referral code:", error);
-                showAlert("Error loading referral program. Please refresh the page.");
+                console.error("Error:", error);
+                alert("Error loading referral data. Please refresh.");
             }
-        }
-
-        // Update the UI with referral information
-        function updateReferralUI(referralCode) {
-            referralCodeInput.value = referralCode;
-            // Use the correct path to your index.html file
-            referralLinkInput.value = `${window.location.origin}/index.html?ref=${referralCode}`;
-        }
-
-        // Generate random code (alphanumeric without confusing characters)
-        function generateRandomCode(length) {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let result = '';
-            for (let i = 0; i < length; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        }
+        });
 
         // Copy functions
         function copyCode() {
             referralCodeInput.select();
             document.execCommand('copy');
-            showAlert('Referral code copied to clipboard!');
+            alert('Referral code copied to clipboard!');
         }
 
         function copyLink() {
             referralLinkInput.select();
             document.execCommand('copy');
-            showAlert('Referral link copied to clipboard!');
+            alert('Referral link copied to clipboard!');
         }
 
         // Social share functions
         function shareFacebook() {
-            const link = encodeURIComponent(referralLinkInput.value);
-            const text = encodeURIComponent("Join me using my referral link and get 10 bonus points!");
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${link}&quote=${text}`, '_blank');
+            const link = encodeURIComponent(document.getElementById('referral-link').value);
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${link}`, '_blank');
         }
 
         function shareTwitter() {
-            const link = encodeURIComponent(referralLinkInput.value);
-            const text = encodeURIComponent("Join me using my referral link and get 10 bonus points! ");
-            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${link}`, '_blank');
+            const link = encodeURIComponent(document.getElementById('referral-link').value);
+            window.open(`https://twitter.com/intent/tweet?text=Join%20me!&url=${link}`, '_blank');
         }
 
         function shareWhatsApp() {
-            const link = encodeURIComponent(referralLinkInput.value);
-            const text = encodeURIComponent("Join me using my referral link and get 10 bonus points! ");
-            window.open(`https://wa.me/?text=${text}${link}`, '_blank');
+            const link = encodeURIComponent(document.getElementById('referral-link').value);
+            window.open(`https://wa.me/?text=Join%20me%20${link}`, '_blank');
         }
 
         function shareTelegram() {
-            const link = encodeURIComponent(referralLinkInput.value);
-            const text = encodeURIComponent("Join me using my referral link and get 10 bonus points! ");
-            window.open(`https://t.me/share/url?url=${link}&text=${text}`, '_blank');
-        }
-
-        function shareEmail() {
-            const link = referralLinkInput.value;
-            const subject = encodeURIComponent("Join me with this referral link!");
-            const body = encodeURIComponent(`Hi,\n\nI thought you might be interested in joining. If you sign up using my referral link below, you'll get 10 bonus points!\n\n${link}\n\nThanks!`);
-            window.open(`mailto:?subject=${subject}&body=${body}`);
-        }
-
-        function showAlert(message) {
-            alert(message);
+            const link = encodeURIComponent(document.getElementById('referral-link').value);
+            window.open(`https://t.me/share/url?url=${link}&text=Join%20me`, '_blank');
         }
     </script>
 </body>
