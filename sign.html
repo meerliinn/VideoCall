@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Signup/Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            width: 350px;
+        }
+        .tab-container {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            background: #f0f0f0;
+            border: none;
+        }
+        .tab.active {
+            background: #007bff;
+            color: white;
+        }
+        .form-container {
+            display: none;
+        }
+        .form-container.active {
+            display: block;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #message {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        #referral-input-container {
+            margin: 10px 0;
+        }
+        #referral-code-input {
+            width: calc(100% - 20px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tab-container">
+            <button class="tab active" onclick="openTab('signup')">Sign Up</button>
+            <button class="tab" onclick="openTab('login')">Login</button>
+        </div>
+
+        <div id="signup-form" class="form-container active">
+            <h2>Create Account</h2>
+            <div id="message"></div>
+            <input type="email" id="signup-email" placeholder="Email" required>
+            <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required minlength="6">
+            
+            <div id="referral-input-container">
+                <label for="referral-code-input">Referral Code (optional):</label>
+                <input type="text" id="referral-code-input" placeholder="Enter referral code if you have one">
+            </div>
+            
+            <button onclick="signUp()">Sign Up</button>
+        </div>
+
+        <div id="login-form" class="form-container">
+            <h2>Welcome Back</h2>
+            <div id="login-message"></div>
+            <input type="email" id="login-email" placeholder="Email" required>
+            <input type="password" id="login-password" placeholder="Password" required>
+            <button onclick="login()">Login</button>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA7pTxdBnJhW170qADnz8w08IWwRsm4KDE",
+            authDomain: "mywebproject.firebaseapp.com",
+            projectId: "mywebproject-5ba04",
+            storageBucket: "mywebproject-5ba04.appspot.com",
+            messagingSenderId: "588440546744",
+            appId: "1:588440546744:web:319fee1dfd203c5469334d"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Check for referral code in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlReferralCode = urlParams.get('ref');
+        if (urlReferralCode) {
+            document.getElementById('referral-code-input').value = urlReferralCode;
+        }
+
+        // Tab switching
+        function openTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.form-container').forEach(form => {
+                form.classList.remove('active');
+            });
+            
+            document.querySelector(`.tab[onclick="openTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`${tabName}-form`).classList.add('active');
+        }
+
+        // Generate referral code
+        function generateReferralCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Sign up function
+        function signUp() {
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const referralCode = document.getElementById('referral-code-input').value || urlReferralCode;
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    const userRefCode = generateReferralCode();
+                    
+                    // Save user data with referral code
+                    return db.collection('users').doc(user.uid).set({
+                        email: email,
+                        referralCode: userRefCode,
+                        referredBy: referralCode || null,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        points: 0
+                    });
+                })
+                .then(() => {
+                    showMessage('Account created successfully! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'home.html';
+                    }, 1500);
+                })
+                .catch((error) => {
+                    showMessage(error.message, 'error');
+                });
+        }
+
+        // Login function
+        function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    showLoginMessage('Login successful! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'home.html';
+                    }, 1500);
+                })
+                .catch((error) => {
+                    showLoginMessage(error.message, 'error');
+                });
+        }
+
+        // Message display functions
+        function showMessage(message, type) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.textContent = message;
+            msgDiv.className = type;
+        }
+
+        function showLoginMessage(message, type) {
+            const msgDiv = document.getElementById('login-message');
+            msgDiv.textContent = message;
+            msgDiv.className = type;
+        }
+
+        // Check if user is already logged in
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                window.location.href = 'home.html';
+            }
+        });
+    </script>
+</body>
+</html>
