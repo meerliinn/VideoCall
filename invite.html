@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Referral Program</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .referral-box {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .code-display {
+            display: flex;
+            margin: 15px 0;
+        }
+        .code-display input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            font-size: 16px;
+        }
+        .code-display button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+        .code-display button:hover {
+            background-color: #0056b3;
+        }
+        .social-share {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+        .social-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .facebook { background-color: #3b5998; }
+        .twitter { background-color: #1da1f2; }
+        .whatsapp { background-color: #25d366; }
+        .telegram { background-color: #0088cc; }
+        .email { background-color: #6c757d; }
+        .back-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+        .how-it-works {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f1f8ff;
+            border-radius: 8px;
+        }
+        .how-it-works h3 {
+            margin-top: 0;
+            color: #0056b3;
+        }
+        .how-it-works ol {
+            padding-left: 20px;
+        }
+        .how-it-works li {
+            margin-bottom: 10px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Referral Program</h1>
+        
+        <div class="referral-box">
+            <h2>Invite Friends & Earn 10 Points Each</h2>
+            <p>Share your unique referral code with friends and earn points when they sign up!</p>
+            
+            <label>Your Referral Code:</label>
+            <div class="code-display">
+                <input type="text" id="referral-code" readonly>
+                <button onclick="copyCode()"><i class="fas fa-copy"></i> Copy</button>
+            </div>
+            
+            <label>Your Referral Link:</label>
+            <div class="code-display">
+                <input type="text" id="referral-link" readonly>
+                <button onclick="copyLink()"><i class="fas fa-copy"></i> Copy</button>
+            </div>
+        </div>
+        
+        <h3>Share Your Link</h3>
+        <div class="social-share">
+            <button class="social-btn facebook" onclick="shareFacebook()">
+                <i class="fab fa-facebook-f"></i> Facebook
+            </button>
+            <button class="social-btn twitter" onclick="shareTwitter()">
+                <i class="fab fa-twitter"></i> Twitter
+            </button>
+            <button class="social-btn whatsapp" onclick="shareWhatsApp()">
+                <i class="fab fa-whatsapp"></i> WhatsApp
+            </button>
+            <button class="social-btn telegram" onclick="shareTelegram()">
+                <i class="fab fa-telegram-plane"></i> Telegram
+            </button>
+            <button class="social-btn email" onclick="shareEmail()">
+                <i class="fas fa-envelope"></i> Email
+            </button>
+        </div>
+        
+        <div class="how-it-works">
+            <h3>How It Works</h3>
+            <ol>
+                <li>Share your referral link or code with friends</li>
+                <li>They sign up using your link or enter your code</li>
+                <li>You earn <strong>10 points</strong> for each successful referral</li>
+                <li>Redeem your points for rewards in the rewards section</li>
+            </ol>
+        </div>
+        
+        <a href="home.html" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA7pTxdBnJhW170qADnz8w08IWwRsm4KDE",
+            authDomain: "mywebproject.firebaseapp.com",
+            projectId: "mywebproject-5ba04",
+            storageBucket: "mywebproject-5ba04.appspot.com",
+            messagingSenderId: "588440546744",
+            appId: "1:588440546744:web:319fee1dfd203c5469334d"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // DOM elements
+        const referralCodeInput = document.getElementById('referral-code');
+        const referralLinkInput = document.getElementById('referral-link');
+
+        // Check authentication state
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+            } else {
+                loadUserData(user.uid);
+            }
+        });
+
+        // Load user data
+        function loadUserData(userId) {
+            db.collection('users').doc(userId).get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        referralCodeInput.value = userData.referralCode;
+                        referralLinkInput.value = `${window.location.origin}/index.html?ref=${userData.referralCode}`;
+                    }
+                });
+        }
+
+        // Copy functions
+        function copyCode() {
+            referralCodeInput.select();
+            document.execCommand('copy');
+            alert('Referral code copied to clipboard!');
+        }
+
+        function copyLink() {
+            referralLinkInput.select();
+            document.execCommand('copy');
+            alert('Referral link copied to clipboard!');
+        }
+
+        // Social share functions
+        function shareFacebook() {
+            const link = encodeURIComponent(referralLinkInput.value);
+            const text = encodeURIComponent("Join me and get 10 bonus points when you sign up with my referral code!");
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${link}&quote=${text}`, '_blank');
+        }
+
+        function shareTwitter() {
+            const link = encodeURIComponent(referralLinkInput.value);
+            const text = encodeURIComponent("Join me using my referral link and get 10 bonus points! ");
+            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${link}`, '_blank');
+        }
+
+        function shareWhatsApp() {
+            const link = encodeURIComponent(referralLinkInput.value);
+            const text = encodeURIComponent("Join me using my referral link and get 10 bonus points! ");
+            window.open(`https://wa.me/?text=${text}${link}`, '_blank');
+        }
+
+        function shareTelegram() {
+            const link = encodeURIComponent(referralLinkInput.value);
+            const text = encodeURIComponent("Join me using my referral link and get 10 bonus points! ");
+            window.open(`https://t.me/share/url?url=${link}&text=${text}`, '_blank');
+        }
+
+        function shareEmail() {
+            const link = referralLinkInput.value;
+            const subject = encodeURIComponent("Join me with this referral link!");
+            const body = encodeURIComponent(`Hi,\n\nI thought you might be interested in joining. If you sign up using my referral link below, you'll get 10 bonus points!\n\n${link}\n\nThanks!`);
+            window.open(`mailto:?subject=${subject}&body=${body}`);
+        }
+    </script>
+</body>
+</html>
