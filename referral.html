@@ -3,34 +3,159 @@
 <head>
     <title>Referral Program - VideoCall</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; color: #333; }
-        .container { max-width: 500px; margin: 0 auto; background-color: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
-        h1, h2 { text-align: center; color: #2c3e50; }
-        h1 { margin-bottom: 5px; }
-        .subtitle { text-align: center; color: #7f8c8d; margin-bottom: 30px; }
-        .referral-box { background-color: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0; }
-        .code-display { margin: 15px 0; }
-        .code-display input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; margin-bottom: 10px; text-align: center; font-weight: bold; }
-        .copy-btn { display: block; width: 100%; padding: 10px; background-color: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
-        .copy-btn:hover { background-color: #2980b9; }
-        .stats-container { display: flex; justify-content: space-around; margin: 20px 0; text-align: center; }
-        .stat-box { padding: 15px; background-color: #e9ecef; border-radius: 8px; flex: 1; margin: 0 5px; }
-        .stat-value { font-size: 24px; font-weight: bold; color: #007bff; }
-        .social-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0; }
-        .social-grid-btn { display: flex; flex-direction: column; align-items: center; padding: 10px; background: transparent; border: none; cursor: pointer; }
-        .social-icon { font-size: 24px; margin-bottom: 5px; }
-        .back-btn { display: block; width: 100%; padding: 12px; background-color: #95a5a6; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 20px; text-align: center; font-size: 16px; transition: background-color 0.3s; }
-        .back-btn:hover { background-color: #7f8c8d; }
-        .how-it-works { margin: 30px 0; padding: 20px; background-color: #ecf0f1; border-radius: 8px; }
-        .how-it-works h3 { margin-top: 0; color: #2c3e50; text-align: center; }
-        .how-it-works ol { padding-left: 20px; }
-        .how-it-works li { margin-bottom: 10px; line-height: 1.5; }
-        .highlight { font-weight: bold; color: #e74c3c; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        h1 {
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        .referral-box {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .code-display {
+            margin: 15px 0;
+        }
+        .code-display input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .copy-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .copy-btn:hover {
+            background-color: #2980b9;
+        }
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .stat-box {
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            flex: 1;
+            margin: 0 5px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .social-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .social-grid-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        .social-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        .back-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .back-btn:hover {
+            background-color: #7f8c8d;
+        }
+        .how-it-works {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #ecf0f1;
+            border-radius: 8px;
+        }
+        .how-it-works h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            text-align: center;
+        }
+        .how-it-works ol {
+            padding-left: 20px;
+        }
+        .how-it-works li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo img {
+            max-width: 150px;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
+        <div class="logo">
+            <img src="logo.png" alt="VideoCall">
+        </div>
+
         <h1>Referral Program</h1>
         <div class="subtitle">meerliinn.github.io/VideoCall/</div>
         
@@ -92,7 +217,7 @@
                 <li>Share your referral link or code with friends</li>
                 <li>They sign up using your link or enter your code</li>
                 <li>You earn <span class="highlight">10 points</span> for each successful referral</li>
-                <li>Redeem your points for rewards in the rewards section</li>
+                <li>Use your points to withdraw or invest in products</li>
             </ol>
         </div>
         
@@ -106,6 +231,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyA7pTxdBnJhW170qADnz8w08IWwRsm4KDE",
             authDomain: "mywebproject.firebaseapp.com",
@@ -115,16 +241,18 @@
             appId: "1:588440546744:web:319fee1dfd203c5469334d"
         };
 
+        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        db.settings({ experimentalForceLongPolling: true });
 
+        // DOM elements
         const referralCodeInput = document.getElementById('referral-code');
         const referralLinkInput = document.getElementById('referral-link');
         const totalReferralsEl = document.getElementById('totalReferrals');
         const totalPointsEl = document.getElementById('totalPoints');
 
+        // Check authentication state
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
                 window.location.href = 'sign.html';
@@ -132,21 +260,46 @@
             }
 
             try {
+                // Get user document
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 
                 if (userDoc.exists) {
                     const userData = userDoc.data();
-                    referralCodeInput.value = userData.referralCode;
-                    referralLinkInput.value = `https://meerliinn.github.io/VideoCall/sign.html?ref=${userData.referralCode}`;
+                    const referralCode = userData.referralCode || generateReferralCode();
                     
-                    totalReferralsEl.textContent = userData.invitedUsers ? userData.invitedUsers.length : 0;
-                    totalPointsEl.textContent = userData.points || 0;
+                    // Update UI with correct path
+                    referralCodeInput.value = referralCode;
+                    referralLinkInput.value = `https://meerliinn.github.io/VideoCall/sign.html?ref=${referralCode}`;
+                    
+                    // Update stats
+                    updateReferralStats(userData);
                 }
             } catch (error) {
                 console.error("Error:", error);
+                alert("Error loading referral data. Please refresh.");
             }
         });
 
+        // Generate referral code
+        function generateReferralCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let result = '';
+            for (let i = 0; i < 8; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Update referral stats
+        function updateReferralStats(userData) {
+            const referralCount = userData.invitedUsers ? userData.invitedUsers.length : 0;
+            const pointsEarned = userData.points || 0;
+            
+            totalReferralsEl.textContent = referralCount;
+            totalPointsEl.textContent = pointsEarned;
+        }
+
+        // Copy functions
         function copyCode() {
             referralCodeInput.select();
             document.execCommand('copy');
@@ -159,6 +312,7 @@
             alert('Referral link copied to clipboard!');
         }
 
+        // Social share functions
         function shareFacebook() {
             const link = encodeURIComponent(document.getElementById('referral-link').value);
             window.open(`https://www.facebook.com/sharer/sharer.php?u=${link}`, '_blank');
