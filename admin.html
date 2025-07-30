@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel - VideoCall</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .login-form {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0069d9;
+        }
+        #message {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .admin-dashboard {
+            display: none;
+        }
+        .deposit-list {
+            margin: 20px 0;
+        }
+        .deposit-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .deposit-info {
+            flex: 1;
+        }
+        .deposit-amount {
+            font-weight: bold;
+            font-size: 18px;
+            color: #28a745;
+        }
+        .deposit-user {
+            color: #6c757d;
+            margin: 5px 0;
+        }
+        .deposit-date {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        .deposit-proof {
+            max-width: 300px;
+            max-height: 200px;
+            margin-left: 20px;
+            cursor: pointer;
+        }
+        .deposit-proof img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 4px;
+        }
+        .deposit-actions {
+            margin-left: 20px;
+        }
+        .action-btn {
+            padding: 8px 15px;
+            margin-left: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+        }
+        .verify-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .reject-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 80%;
+            max-height: 80%;
+            overflow: auto;
+        }
+        .modal-content img {
+            max-width: 100%;
+            max-height: 80vh;
+        }
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+        }
+        .logout-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
+        .no-deposits {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-style: italic;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Panel</h1>
+        
+        <div id="login-section">
+            <div class="login-form">
+                <h2>Admin Login</h2>
+                <div id="message"></div>
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter password">
+                </div>
+                <button onclick="adminLogin()">Login</button>
+            </div>
+        </div>
+        
+        <div id="admin-dashboard" class="admin-dashboard">
+            <h2>Pending Deposits</h2>
+            <div class="deposit-list" id="deposit-list">
+                <div class="no-deposits">Loading...</div>
+            </div>
+            
+            <button class="logout-btn" onclick="adminLogout()">
+                <i class="fas fa-sign-out-alt"></i> Log Out
+            </button>
+        </div>
+    </div>
+    
+    <div id="proof-modal" class="modal">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <div class="modal-content">
+            <img id="modal-proof" src="" alt="Deposit Proof">
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA7pTxdBnJhW170qADnz8w08IWwRsm4KDE",
+            authDomain: "mywebproject.firebaseapp.com",
+            projectId: "mywebproject-5ba04",
+            storageBucket: "mywebproject-5ba04.appspot.com",
+            messagingSenderId: "588440546744",
+            appId: "1:588440546744:web:319fee1dfd203c5469334d"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // Admin credentials
+        const ADMIN_USERNAME = "Abenezer";
+        const ADMIN_PASSWORD = "1234";
+
+        // DOM elements
+        const loginSection = document.getElementById('login-section');
+        const adminDashboard = document.getElementById('admin-dashboard');
+        const depositList = document.getElementById('deposit-list');
+        const proofModal = document.getElementById('proof-modal');
+        const modalProof = document.getElementById('modal-proof');
+        const messageDiv = document.getElementById('message');
+
+        // Check if admin is already logged in
+        if (sessionStorage.getItem('adminLoggedIn') === 'true') {
+            showAdminDashboard();
+            loadPendingDeposits();
+        }
+
+        // Admin login function
+        function adminLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+                sessionStorage.setItem('adminLoggedIn', 'true');
+                showAdminDashboard();
+                loadPendingDeposits();
+            } else {
+                showMessage('Invalid username or password', 'error');
+            }
+        }
+
+        // Admin logout function
+        function adminLogout() {
+            sessionStorage.removeItem('adminLoggedIn');
+            showLoginForm();
+        }
+
+        // Show admin dashboard
+        function showAdminDashboard() {
+            loginSection.style.display = 'none';
+            adminDashboard.style.display = 'block';
+        }
+
+        // Show login form
+        function showLoginForm() {
+            loginSection.style.display = 'block';
+            adminDashboard.style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        // Show message
+        function showMessage(message, type) {
+            messageDiv.textContent = message;
+            messageDiv.className = type;
+        }
+
+        // Load pending deposits
+        function loadPendingDeposits() {
+            db.collection('deposits')
+                .where('status', '==', 'pending')
+                .orderBy('timestamp', 'desc')
+                .get()
+                .then((querySnapshot) => {
+                    depositList.innerHTML = '';
+                    
+                    if (querySnapshot.empty) {
+                        depositList.innerHTML = '<div class="no-deposits">No pending deposits</div>';
+                        return;
+                    }
+                    
+                    querySnapshot.forEach((doc) => {
+                        const deposit = doc.data();
+                        const date = deposit.timestamp.toDate();
+                        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                        
+                        const depositItem = document.createElement('div');
+                        depositItem.className = 'deposit-item';
+                        depositItem.innerHTML = `
+                            <div class="deposit-info">
+                                <div class="deposit-amount">${deposit.amount} USDT</div>
+                                <div class="deposit-user">User: ${deposit.userId}</div>
+                                <div class="deposit-date">${formattedDate}</div>
+                                <div>Tx Hash: ${deposit.transactionHash}</div>
+                            </div>
+                            <div class="deposit-proof" onclick="viewProof('${deposit.screenshotUrl}')">
+                                <img src="${deposit.screenshotUrl}" alt="Proof" style="max-width: 100px; max-height: 60px;">
+                            </div>
+                            <div class="deposit-actions">
+                                <button class="action-btn verify-btn" onclick="verifyDeposit('${doc.id}', '${deposit.userId}', ${deposit.amount})">
+                                    <i class="fas fa-check"></i> Verify
+                                </button>
+                                <button class="action-btn reject-btn" onclick="rejectDeposit('${doc.id}')">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                            </div>
+                        `;
+                        depositList.appendChild(depositItem);
+                    });
+                })
+                .catch((error) => {
+                    console.error("Error loading deposits:", error);
+                    depositList.innerHTML = '<div class="no-deposits">Error loading deposits</div>';
+                });
+        }
+
+        // View proof in modal
+        function viewProof(imageUrl) {
+            modalProof.src = imageUrl;
+            proofModal.style.display = 'flex';
+        }
+
+        // Close modal
+        function closeModal() {
+            proofModal.style.display = 'none';
+        }
+
+        // Verify deposit
+        async function verifyDeposit(depositId, userId, amount) {
+            if (!confirm(`Are you sure you want to verify this deposit of ${amount} USDT?`)) {
+                return;
+            }
+            
+            try {
+                // Update deposit status
+                await db.collection('deposits').doc(depositId).update({
+                    status: 'completed',
+                    verifiedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Add balance to user's account
+                await db.collection('users').doc(userId).update({
+                    depositBalance: firebase.firestore.FieldValue.increment(amount)
+                });
+                
+                alert('Deposit verified successfully!');
+                loadPendingDeposits();
+                
+            } catch (error) {
+                console.error("Error verifying deposit:", error);
+                alert('Error verifying deposit. Please try again.');
+            }
+        }
+
+        // Reject deposit
+        async function rejectDeposit(depositId) {
+            if (!confirm('Are you sure you want to reject this deposit?')) {
+                return;
+            }
+            
+            try {
+                await db.collection('deposits').doc(depositId).update({
+                    status: 'rejected',
+                    verifiedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert('Deposit rejected successfully!');
+                loadPendingDeposits();
+                
+            } catch (error) {
+                console.error("Error rejecting deposit:", error);
+                alert('Error rejecting deposit. Please try again.');
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target === proofModal) {
+                closeModal();
+            }
+        };
+    </script>
+</body>
+</html>
