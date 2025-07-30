@@ -3,122 +3,40 @@
 <head>
     <title>Dashboard - VideoCall</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        .balance-card {
-            background-color: #007bff;
-            color: white;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            margin: 20px 0;
-        }
-        .balance-amount {
-            font-size: 36px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        .invited-users {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-        }
-        .invited-users h3 {
-            margin-top: 0;
-            color: #2c3e50;
-        }
-        .user-list {
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        .user-item {
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-        }
-        .user-date {
-            font-size: 12px;
-            color: #6c757d;
-        }
-        .no-users {
-            color: #6c757d;
-            font-style: italic;
-        }
-        .nav-menu {
-            display: flex;
-            justify-content: space-around;
-            margin: 30px 0;
-        }
-        .nav-btn {
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            text-align: center;
-            cursor: pointer;
-            flex: 1;
-            margin: 0 10px;
-            transition: all 0.3s;
-        }
-        .nav-btn:hover {
-            background-color: #e9ecef;
-            transform: translateY(-3px);
-        }
-        .nav-btn i {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-        .logout-btn {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 20px;
-        }
-        .logout-btn:hover {
-            background-color: #c82333;
-        }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); }
+        h1 { color: #333; text-align: center; }
+        .balance-card { background-color: #007bff; color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }
+        .balance-amount { font-size: 36px; font-weight: bold; margin: 10px 0; }
+        .invited-users { margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px; }
+        .invited-users h3 { margin-top: 0; color: #2c3e50; }
+        .user-list { max-height: 200px; overflow-y: auto; }
+        .user-item { padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        .user-date { font-size: 12px; color: #6c757d; }
+        .no-users { color: #6c757d; font-style: italic; }
+        .nav-menu { display: flex; justify-content: space-around; margin: 30px 0; }
+        .nav-btn { padding: 15px; background-color: #f8f9fa; border-radius: 8px; text-align: center; cursor: pointer; flex: 1; margin: 0 10px; transition: all 0.3s; }
+        .nav-btn:hover { background-color: #e9ecef; transform: translateY(-3px); }
+        .nav-btn i { font-size: 24px; margin-bottom: 10px; }
+        .logout-btn { display: block; width: 100%; padding: 10px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px; }
+        .logout-btn:hover { background-color: #c82333; }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
         <h1>Welcome to VideoCall</h1>
-        
         <div class="balance-card">
             <div>Your Points Balance</div>
             <div class="balance-amount" id="points-balance">0</div>
             <div>Points</div>
         </div>
-        
         <div class="invited-users">
             <h3>Your Invited Users</h3>
             <div class="user-list" id="invitedUsersList">
                 <div class="no-users">Loading...</div>
             </div>
         </div>
-        
         <div class="nav-menu">
             <div class="nav-btn" onclick="window.location.href='referral.html'">
                 <i class="fas fa-share-alt"></i>
@@ -133,7 +51,6 @@
                 <div>History</div>
             </div>
         </div>
-        
         <button class="logout-btn" onclick="logout()">
             <i class="fas fa-sign-out-alt"></i> Log Out
         </button>
@@ -144,7 +61,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyA7pTxdBnJhW170qADnz8w08IWwRsm4KDE",
             authDomain: "mywebproject.firebaseapp.com",
@@ -154,12 +70,11 @@
             appId: "1:588440546744:web:319fee1dfd203c5469334d"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        db.settings({ experimentalForceLongPolling: true });
 
-        // Check authentication state
         auth.onAuthStateChanged((user) => {
             if (!user) {
                 window.location.href = 'sign.html';
@@ -168,34 +83,26 @@
             }
         });
 
-        // Load user data with invited users
         function loadUserData(userId) {
-            db.collection('users').doc(userId).get()
-                .then((doc) => {
-                    if (doc.exists) {
-                        const userData = doc.data();
-                        document.getElementById('points-balance').textContent = userData.points || 0;
-                        
-                        // Load invited users
-                        if (userData.invitedUsers && userData.invitedUsers.length > 0) {
-                            displayInvitedUsers(userData.invitedUsers);
-                        } else {
-                            document.getElementById('invitedUsersList').innerHTML = 
-                                '<div class="no-users">No invited users yet</div>';
-                        }
+            db.collection('users').doc(userId).onSnapshot((doc) => {
+                if (doc.exists) {
+                    const userData = doc.data();
+                    document.getElementById('points-balance').textContent = userData.points || 0;
+                    
+                    if (userData.invitedUsers && userData.invitedUsers.length > 0) {
+                        displayInvitedUsers(userData.invitedUsers);
+                    } else {
+                        document.getElementById('invitedUsersList').innerHTML = 
+                            '<div class="no-users">No invited users yet</div>';
                     }
-                })
-                .catch(error => {
-                    console.error("Error loading user data:", error);
-                });
+                }
+            });
         }
 
-        // Display invited users list
         function displayInvitedUsers(invitedUsers) {
             const userList = document.getElementById('invitedUsersList');
             userList.innerHTML = '';
             
-            // Sort by date (newest first)
             invitedUsers.sort((a, b) => b.date.seconds - a.date.seconds);
             
             invitedUsers.forEach(user => {
@@ -216,12 +123,10 @@
             });
         }
 
-        // Logout function
         function logout() {
-            auth.signOut()
-                .then(() => {
-                    window.location.href = 'sign.html';
-                });
+            auth.signOut().then(() => {
+                window.location.href = 'sign.html';
+            });
         }
     </script>
 </body>
