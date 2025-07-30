@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Investment Products - VideoCall</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .balance-card {
+            background-color: #6f42c1;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .balance-amount {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .product-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .product-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .product-card.basic {
+            border-top: 5px solid #28a745;
+        }
+        .product-card.vip {
+            border-top: 5px solid #dc3545;
+        }
+        .product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .product-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .product-price {
+            font-size: 16px;
+            font-weight: bold;
+            color: #28a745;
+        }
+        .product-features {
+            margin: 15px 0;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .feature-item i {
+            margin-right: 8px;
+            color: #007bff;
+        }
+        .buy-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .buy-btn:hover {
+            background-color: #0069d9;
+        }
+        .buy-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .vip-badge {
+            position: absolute;
+            top: 10px;
+            right: -30px;
+            background-color: #dc3545;
+            color: white;
+            padding: 3px 30px;
+            transform: rotate(45deg);
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .nav-menu {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+        }
+        .nav-btn {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            flex: 1;
+            margin: 0 5px;
+            transition: all 0.3s;
+        }
+        .nav-btn:hover {
+            background-color: #e9ecef;
+            transform: translateY(-3px);
+        }
+        .nav-btn i {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .back-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+        .active-products {
+            margin: 30px 0;
+        }
+        .active-product-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .product-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .product-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        .no-products {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-style: italic;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Investment Products</h1>
+        
+        <div class="balance-card">
+            <div>Your Deposit Balance</div>
+            <div class="balance-amount" id="deposit-balance">0</div>
+            <div>USDT</div>
+        </div>
+        
+        <div class="product-grid">
+            <div class="product-card basic">
+                <div class="product-header">
+                    <div class="product-title">Level 1 Package</div>
+                    <div class="product-price">30 USDT</div>
+                </div>
+                <div class="product-features">
+                    <div class="feature-item">
+                        <i class="fas fa-percentage"></i> Daily 4% interest for 120 days
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-calendar-alt"></i> Total return: 480% (144 USDT)
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-coins"></i> Earnings credited daily
+                    </div>
+                </div>
+                <button class="buy-btn" onclick="buyProduct('Level 1', 30, 4, 120)">
+                    Buy Now
+                </button>
+            </div>
+            
+            <div class="product-card basic">
+                <div class="product-header">
+                    <div class="product-title">Level 2 Package</div>
+                    <div class="product-price">50 USDT</div>
+                </div>
+                <div class="product-features">
+                    <div class="feature-item">
+                        <i class="fas fa-percentage"></i> Daily 4% interest for 120 days
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-calendar-alt"></i> Total return: 480% (240 USDT)
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-coins"></i> Earnings credited daily
+                    </div>
+                </div>
+                <button class="buy-btn" onclick="buyProduct('Level 2', 50, 4, 120)">
+                    Buy Now
+                </button>
+            </div>
+            
+            <div class="product-card basic">
+                <div class="product-header">
+                    <div class="product-title">Level 3 Package</div>
+                    <div class="product-price">100 USDT</div>
+                </div>
+                <div class="product-features">
+                    <div class="feature-item">
+                        <i class="fas fa-percentage"></i> Daily 4% interest for 120 days
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-calendar-alt"></i> Total return: 480% (480 USDT)
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-coins"></i> Earnings credited daily
+                    </div>
+                </div>
+                <button class="buy-btn" onclick="buyProduct('Level 3', 100, 4, 120)">
+                    Buy Now
+                </button>
+            </div>
+            
+            <div class="product-card vip">
+                <div class="vip-badge">VIP</div>
+                <div class="product-header">
+                    <div class="product-title">VIP 1 Package</div>
+                    <div class="product-price">300 USDT</div>
+                </div>
+                <div class="product-features">
+                    <div class="feature-item">
+                        <i class="fas fa-dollar-sign"></i> Daily 15 USDT for 130 days
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-calendar-alt"></i> Total return: 1950 USDT
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-coins"></i> Earnings credited daily
+                    </div>
+                </div>
+                <button class="buy-btn" onclick="buyProduct('VIP 1', 300, 15, 130, true)">
+                    Buy Now
+                </button>
+            </div>
+            
+            <div class="product-card vip">
+                <div class="vip-badge">VIP</div>
+                <div class="product-header">
+                    <div class="product-title">VIP 2 Package</div>
+                    <div class="product-price">500 USDT</div>
+                </div>
+                <div class="product-features">
+                    <div class="feature-item">
+                        <i class="fas fa-dollar-sign"></i> Daily 25 USDT for 130 days
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-calendar-alt"></i> Total return: 3250 USDT
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-coins"></i> Earnings credited daily
+                    </div>
+                </div>
+                <button class="buy-btn" onclick="buyProduct('VIP 2', 500, 25, 130, true)">
+                    Buy Now
+                </button>
+            </div>
+            
+            <div class="product-card vip">
+                <div class="vip-badge">VIP</div>
+                <div class="product-header">
+                    <div class="product-title">VIP 3 Package</div>
+                    <div class="product-price">1000 USDT</div>
+                </div>
+                <div class="product-features">
+                    <div class="feature-item">
+                        <i class="fas fa-dollar-sign"></i> Daily 50 USDT for 130 days
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-calendar-alt"></i> Total return: 6500 USDT
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-coins"></i> Earnings credited daily
+                    </div>
+                </div>
+                <button class="buy-btn" onclick="buyProduct('VIP 3', 1000, 50, 130, true)">
+                    Buy Now
+                </button>
+            </div>
+        </div>
+        
+        <div class="active-products">
+            <h3>Your Active Investments</h3>
+            <div id="active-products-list">
+                <div class="no-products">No active investments yet</div>
+            </div>
+        </div>
+        
+        <div class="nav-menu">
+            <div class="nav-btn" onclick="window.location.href='home.html'">
+                <i class="fas fa-home"></i>
+                <div>Home</div>
+            </div>
+            <div class="nav-btn" onclick="window.location.href='deposit.html'">
+                <i class="fas fa-money-bill-wave"></i>
+                <div>Deposit</div>
+            </div>
+            <div class="nav-btn" onclick="window.location.href='withdraw.html'">
+                <i class="fas fa-wallet"></i>
+                <div>Withdraw</div>
+            </div>
+        </div>
+        
+        <button class="back-btn" onclick="window.location.href='home.html'">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA7pTxdBnJhW170qADnz8w08IWwRsm4KDE",
+            authDomain: "mywebproject.firebaseapp.com",
+            projectId: "mywebproject-5ba04",
+            storageBucket: "mywebproject-5ba04.appspot.com",
+            messagingSenderId: "588440546744",
+            appId: "1:588440546744:web:319fee1dfd203c5469334d"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // DOM elements
+        const depositBalanceEl = document.getElementById('deposit-balance');
+        const activeProductsList = document.getElementById('active-products-list');
+
+        // Check authentication state
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'sign.html';
+            } else {
+                loadUserData(user.uid);
+                loadActiveProducts(user.uid);
+            }
+        });
+
+        // Load user data
+        function loadUserData(userId) {
+            db.collection('users').doc(userId).get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        depositBalanceEl.textContent = userData.depositBalance ? userData.depositBalance.toFixed(2) : '0.00';
+                    }
+                });
+        }
+
+        // Load active products
+        function loadActiveProducts(userId) {
+            db.collection('investments')
+                .where('userId', '==', userId)
+                .where('status', '==', 'active')
+                .orderBy('purchaseDate', 'desc')
+                .get()
+                .then((querySnapshot) => {
+                    activeProductsList.innerHTML = '';
+                    
+                    if (querySnapshot.empty) {
+                        activeProductsList.innerHTML = '<div class="no-products">No active investments yet</div>';
+                        return;
+                    }
+                    
+                    querySnapshot.forEach((doc) => {
+                        const investment = doc.data();
+                        const purchaseDate = investment.purchaseDate.toDate();
+                        const formattedDate = purchaseDate.toLocaleDateString();
+                        
+                        const daysLeft = investment.duration - Math.floor((Date.now() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24);
+                        
+                        const productItem = document.createElement('div');
+                        productItem.className = 'active-product-item';
+                        productItem.innerHTML = `
+                            <div class="product-name">${investment.productName}</div>
+                            <div class="product-details">
+                                <div>Invested: ${investment.amount} USDT</div>
+                                <div>Days left: ${Math.max(0, Math.floor(daysLeft))}</div>
+                            </div>
+                            <div class="product-details">
+                                <div>Daily earnings: ${investment.dailyEarnings} ${investment.isFixed ? 'USDT' : '%'}</div>
+                                <div>Total earned: ${investment.totalEarned ? investment.totalEarned.toFixed(2) : '0.00'} USDT</div>
+                            </div>
+                        `;
+                        activeProductsList.appendChild(productItem);
+                    });
+                });
+        }
+
+        // Buy product function
+        async function buyProduct(productName, price, dailyEarnings, duration, isFixed = false) {
+            const user = auth.currentUser;
+            if (!user) {
+                window.location.href = 'sign.html';
+                return;
+            }
+            
+            // Confirm purchase
+            if (!confirm(`Are you sure you want to purchase ${productName} for ${price} USDT?`)) {
+                return;
+            }
+            
+            try {
+                // Check user's deposit balance
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists) {
+                    alert('User data not found');
+                    return;
+                }
+                
+                const userData = userDoc.data();
+                const depositBalance = userData.depositBalance || 0;
+                
+                if (depositBalance < price) {
+                    alert('Insufficient deposit balance. Please deposit first.');
+                    window.location.href = 'deposit.html';
+                    return;
+                }
+                
+                // Deduct from deposit balance
+                await db.collection('users').doc(user.uid).update({
+                    depositBalance: firebase.firestore.FieldValue.increment(-price)
+                });
+                
+                // Create investment record
+                await db.collection('investments').add({
+                    userId: user.uid,
+                    productName: productName,
+                    amount: price,
+                    dailyEarnings: dailyEarnings,
+                    duration: duration,
+                    isFixed: isFixed,
+                    totalEarned: 0,
+                    status: 'active',
+                    purchaseDate: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastPayoutDate: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert(`Successfully purchased ${productName}! Daily earnings will be credited to your account.`);
+                
+                // Refresh data
+                loadUserData(user.uid);
+                loadActiveProducts(user.uid);
+                
+            } catch (error) {
+                console.error('Error purchasing product:', error);
+                alert('Error purchasing product. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>
