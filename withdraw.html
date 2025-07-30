@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Withdraw - VideoCall</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .balance-card {
+            background-color: #17a2b8;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .balance-amount {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .withdraw-form {
+            margin: 20px 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .submit-btn:hover {
+            background-color: #0069d9;
+        }
+        .submit-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .history-section {
+            margin: 30px 0;
+        }
+        .history-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        .history-amount {
+            font-weight: bold;
+            color: #dc3545;
+        }
+        .history-date {
+            color: #6c757d;
+            font-size: 12px;
+        }
+        .history-status {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .status-pending {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .status-completed {
+            background-color: #28a745;
+            color: white;
+        }
+        .status-rejected {
+            background-color: #dc3545;
+            color: white;
+        }
+        .nav-menu {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+        }
+        .nav-btn {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            flex: 1;
+            margin: 0 5px;
+            transition: all 0.3s;
+        }
+        .nav-btn:hover {
+            background-color: #e9ecef;
+            transform: translateY(-3px);
+        }
+        .nav-btn i {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .back-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+        .note {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        .min-amount {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Withdraw USDT (TRC20)</h1>
+        
+        <div class="balance-card">
+            <div>Available for Withdrawal</div>
+            <div class="balance-amount" id="withdraw-balance">0</div>
+            <div>USDT</div>
+            <div class="note">Minimum withdrawal: <span class="min-amount">15 USDT</span></div>
+        </div>
+        
+        <div class="withdraw-form">
+            <h3>Withdraw Funds</h3>
+            <div class="form-group">
+                <label for="withdraw-amount">Amount (USDT)</label>
+                <input type="number" id="withdraw-amount" placeholder="Enter amount (min 15 USDT)" min="15">
+            </div>
+            <div class="form-group">
+                <label for="wallet-address">Your TRC20 Wallet Address</label>
+                <input type="text" id="wallet-address" placeholder="Enter your USDT (TRC20) wallet address">
+            </div>
+            <button class="submit-btn" id="submit-withdraw" onclick="submitWithdrawal()">
+                <i class="fas fa-paper-plane"></i> Request Withdrawal
+            </button>
+            <p class="note">Withdrawals are processed within 24 hours. Please ensure your wallet address is correct.</p>
+        </div>
+        
+        <div class="history-section">
+            <h3>Withdrawal History</h3>
+            <div id="withdraw-history">
+                <div class="history-item">
+                    <div>
+                        <div class="history-amount">-30.00 USDT</div>
+                        <div class="history-date">2023-06-12 11:45:33</div>
+                    </div>
+                    <div>
+                        <span class="history-status status-completed">Completed</span>
+                    </div>
+                </div>
+                <div class="history-item">
+                    <div>
+                        <div class="history-amount">-50.00 USDT</div>
+                        <div class="history-date">2023-06-05 16:20:18</div>
+                    </div>
+                    <div>
+                        <span class="history-status status-rejected">Rejected</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="nav-menu">
+            <div class="nav-btn" onclick="window.location.href='home.html'">
+                <i class="fas fa-home"></i>
+                <div>Home</div>
+            </div>
+            <div class="nav-btn" onclick="window.location.href='deposit.html'">
+                <i class="fas fa-money-bill-wave"></i>
+                <div>Deposit</div>
+            </div>
+            <div class="nav-btn" onclick="window.location.href='product.html'">
+                <i class="fas fa-gem"></i>
+                <div>Products</div>
+            </div>
+        </div>
+        
+        <button class="back-btn" onclick="window.location.href='home.html'">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA7pTxdBnJhW170qADnz8w08IWwRsm4KDE",
+            authDomain: "mywebproject.firebaseapp.com",
+            projectId: "mywebproject-5ba04",
+            storageBucket: "mywebproject-5ba04.appspot.com",
+            messagingSenderId: "588440546744",
+            appId: "1:588440546744:web:319fee1dfd203c5469334d"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // DOM elements
+        const withdrawBalanceEl = document.getElementById('withdraw-balance');
+        const withdrawAmountInput = document.getElementById('withdraw-amount');
+        const walletAddressInput = document.getElementById('wallet-address');
+        const submitWithdrawBtn = document.getElementById('submit-withdraw');
+        const withdrawHistoryEl = document.getElementById('withdraw-history');
+
+        // Check authentication state
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'sign.html';
+            } else {
+                loadUserData(user.uid);
+                loadWithdrawalHistory(user.uid);
+            }
+        });
+
+        // Load user data
+        function loadUserData(userId) {
+            db.collection('users').doc(userId).get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        // Calculate available balance (task + referral earnings)
+                        const availableBalance = (userData.points || 0) + (userData.taskEarnings || 0);
+                        withdrawBalanceEl.textContent = availableBalance.toFixed(2);
+                        
+                        // Disable submit button if balance is less than minimum
+                        if (availableBalance < 15) {
+                            submitWithdrawBtn.disabled = true;
+                            submitWithdrawBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Insufficient Balance';
+                        }
+                    }
+                });
+        }
+
+        // Load withdrawal history
+        function loadWithdrawalHistory(userId) {
+            db.collection('withdrawals')
+                .where('userId', '==', userId)
+                .orderBy('timestamp', 'desc')
+                .get()
+                .then((querySnapshot) => {
+                    withdrawHistoryEl.innerHTML = '';
+                    
+                    if (querySnapshot.empty) {
+                        withdrawHistoryEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #6c757d;">No withdrawal history yet</div>';
+                        return;
+                    }
+                    
+                    querySnapshot.forEach((doc) => {
+                        const withdrawal = doc.data();
+                        const date = withdrawal.timestamp.toDate();
+                        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                        
+                        const historyItem = document.createElement('div');
+                        historyItem.className = 'history-item';
+                        
+                        let statusClass = 'status-pending';
+                        let statusText = 'Pending';
+                        
+                        if (withdrawal.status === 'completed') {
+                            statusClass = 'status-completed';
+                            statusText = 'Completed';
+                        } else if (withdrawal.status === 'rejected') {
+                            statusClass = 'status-rejected';
+                            statusText = 'Rejected';
+                        }
+                        
+                        historyItem.innerHTML = `
+                            <div>
+                                <div class="history-amount">-${withdrawal.amount.toFixed(2)} USDT</div>
+                                <div class="history-date">${formattedDate}</div>
+                            </div>
+                            <div>
+                                <span class="history-status ${statusClass}">${statusText}</span>
+                            </div>
+                        `;
+                        withdrawHistoryEl.appendChild(historyItem);
+                    });
+                });
+        }
+
+        // Submit withdrawal request
+        async function submitWithdrawal() {
+            const amount = parseFloat(withdrawAmountInput.value);
+            const walletAddress = walletAddressInput.value.trim();
+            
+            if (!amount || amount < 15) {
+                alert('Minimum withdrawal amount is 15 USDT');
+                return;
+            }
+            
+            if (!walletAddress || walletAddress.length < 10) {
+                alert('Please enter a valid TRC20 wallet address');
+                return;
+            }
+            
+            const user = auth.currentUser;
+            if (!user) {
+                window.location.href = 'sign.html';
+                return;
+            }
+            
+            // Check available balance
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists) {
+                alert('User data not found');
+                return;
+            }
+            
+            const userData = userDoc.data();
+            const availableBalance = (userData.points || 0) + (userData.taskEarnings || 0);
+            
+            if (amount > availableBalance) {
+                alert('Insufficient balance for this withdrawal');
+                return;
+            }
+            
+            try {
+                // Create withdrawal record
+                await db.collection('withdrawals').add({
+                    userId: user.uid,
+                    amount: amount,
+                    walletAddress: walletAddress,
+                    status: 'pending',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert('Withdrawal request submitted successfully! It will be processed within 24 hours.');
+                
+                // Clear form
+                withdrawAmountInput.value = '';
+                walletAddressInput.value = '';
+                
+                // Refresh data
+                loadUserData(user.uid);
+                loadWithdrawalHistory(user.uid);
+                
+            } catch (error) {
+                console.error('Error submitting withdrawal:', error);
+                alert('Error submitting withdrawal. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>
