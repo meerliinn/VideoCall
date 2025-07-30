@@ -130,7 +130,7 @@
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
+        const app = firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
@@ -190,7 +190,7 @@
 
                 // If signed up with referral code, update referrer's points
                 if (referralCode) {
-                    await updateReferrerPoints(referralCode, user.uid);
+                    await updateReferrerPoints(referralCode, user.uid, email);
                 }
 
                 showMessage('Account created! Redirecting...', 'success');
@@ -203,7 +203,7 @@
         }
 
         // Update referrer's points and invited users list
-        async function updateReferrerPoints(referralCode, newUserId) {
+        async function updateReferrerPoints(referralCode, newUserId, newUserEmail) {
             try {
                 // Find user with this referral code
                 const querySnapshot = await db.collection('users')
@@ -213,13 +213,24 @@
 
                 if (!querySnapshot.empty) {
                     const referrerDoc = querySnapshot.docs[0];
+                    const referrerId = referrerDoc.id;
                     const referrerData = referrerDoc.data();
                     
-                    // Update referrer's points and invited users
-                    await db.collection('users').doc(referrerDoc.id).update({
-                        points: (referrerData.points || 0) + 10,
-                        invitedUsers: [...(referrerData.invitedUsers || []), newUserId]
+                    // Create invited user data
+                    const invitedUser = {
+                        userId: newUserId,
+                        email: newUserEmail,
+                        date: firebase.firestore.FieldValue.serverTimestamp(),
+                        pointsEarned: 10
+                    };
+                    
+                    // Update referrer's document
+                    await db.collection('users').doc(referrerId).update({
+                        points: firebase.firestore.FieldValue.increment(10),
+                        invitedUsers: firebase.firestore.FieldValue.arrayUnion(invitedUser)
                     });
+                    
+                    console.log("Referrer points updated successfully");
                 }
             } catch (error) {
                 console.error("Error updating referrer points:", error);
