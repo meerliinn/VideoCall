@@ -184,6 +184,9 @@
                                 '<div class="no-users">No invited users yet</div>';
                         }
                     }
+                })
+                .catch(error => {
+                    console.error("Error loading user data:", error);
                 });
         }
 
@@ -193,13 +196,13 @@
             userList.innerHTML = '';
             
             // Sort by date (newest first)
-            invitedUsers.sort((a, b) => b.date.toDate() - a.date.toDate());
+            invitedUsers.sort((a, b) => b.date.seconds - a.date.seconds);
             
             invitedUsers.forEach(user => {
                 const userItem = document.createElement('div');
                 userItem.className = 'user-item';
                 
-                const date = user.date.toDate();
+                const date = new Date(user.date.seconds * 1000);
                 const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
                 
                 userItem.innerHTML = `
