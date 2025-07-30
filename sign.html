@@ -3,85 +3,20 @@
 <head>
     <title>Signup/Login - VideoCall</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f4f4f4;
-        }
-        .container {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            width: 350px;
-        }
-        .tab-container {
-            display: flex;
-            margin-bottom: 20px;
-        }
-        .tab {
-            flex: 1;
-            padding: 10px;
-            text-align: center;
-            cursor: pointer;
-            background: #f0f0f0;
-            border: none;
-        }
-        .tab.active {
-            background: #007bff;
-            color: white;
-        }
-        .form-container {
-            display: none;
-        }
-        .form-container.active {
-            display: block;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        #message {
-            margin: 15px 0;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        #referral-input-container {
-            margin: 10px 0;
-        }
-        #referral-code-input {
-            width: calc(100% - 20px);
-        }
+        body { font-family: Arial, sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f4f4f4; }
+        .container { background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); width: 350px; }
+        .tab-container { display: flex; margin-bottom: 20px; }
+        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; background: #f0f0f0; border: none; }
+        .tab.active { background: #007bff; color: white; }
+        .form-container { display: none; }
+        .form-container.active { display: block; }
+        input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #0056b3; }
+        #message, #login-message { margin: 15px 0; padding: 10px; border-radius: 4px; text-align: center; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        #referral-input-container { margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -96,12 +31,10 @@
             <div id="message"></div>
             <input type="email" id="signup-email" placeholder="Email" required>
             <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required minlength="6">
-            
             <div id="referral-input-container">
                 <label for="referral-code-input">Referral Code (optional):</label>
                 <input type="text" id="referral-code-input" placeholder="Enter referral code if you have one">
             </div>
-            
             <button onclick="signUp()">Sign Up</button>
         </div>
 
@@ -119,7 +52,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyA7pTxdBnJhW170qADnz8w08IWwRsm4KDE",
             authDomain: "mywebproject.firebaseapp.com",
@@ -129,32 +61,24 @@
             appId: "1:588440546744:web:319fee1dfd203c5469334d"
         };
 
-        // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        db.settings({ experimentalForceLongPolling: true });
 
-        // Check for referral code in URL
         const urlParams = new URLSearchParams(window.location.search);
         const urlReferralCode = urlParams.get('ref');
         if (urlReferralCode) {
             document.getElementById('referral-code-input').value = urlReferralCode;
         }
 
-        // Tab switching
         function openTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.form-container').forEach(form => {
-                form.classList.remove('active');
-            });
-            
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.form-container').forEach(form => form.classList.remove('active'));
             document.querySelector(`.tab[onclick="openTab('${tabName}')"]`).classList.add('active');
             document.getElementById(`${tabName}-form`).classList.add('active');
         }
 
-        // Generate referral code
         function generateReferralCode() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             let result = '';
@@ -164,21 +88,16 @@
             return result;
         }
 
-        // Sign up function with referral tracking
         async function signUp() {
             const email = document.getElementById('signup-email').value;
             const password = document.getElementById('signup-password').value;
             const referralCode = document.getElementById('referral-code-input').value || urlReferralCode;
 
             try {
-                // Create user
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
-                
-                // Generate referral code for new user
                 const userRefCode = generateReferralCode();
                 
-                // Create user data object
                 const userData = {
                     email: email,
                     referralCode: userRefCode,
@@ -187,32 +106,24 @@
                     invitedUsers: []
                 };
 
-                // Add referredBy if exists
-                if (referralCode) {
-                    userData.referredBy = referralCode;
-                }
+                if (referralCode) userData.referredBy = referralCode;
 
-                // Save user data
                 await db.collection('users').doc(user.uid).set(userData);
 
-                // If signed up with referral code, update referrer's points
                 if (referralCode) {
                     await updateReferrerPoints(referralCode, user.uid, email);
                 }
 
                 showMessage('Account created! Redirecting...', 'success');
                 setTimeout(() => window.location.href = 'home.html', 1500);
-                
             } catch (error) {
                 showMessage(error.message, 'error');
                 console.error("Signup error:", error);
             }
         }
 
-        // Update referrer's points and invited users list
         async function updateReferrerPoints(referralCode, newUserId, newUserEmail) {
             try {
-                // Find user with this referral code
                 const querySnapshot = await db.collection('users')
                     .where('referralCode', '==', referralCode)
                     .limit(1)
@@ -220,30 +131,27 @@
 
                 if (!querySnapshot.empty) {
                     const referrerDoc = querySnapshot.docs[0];
-                    const referrerId = referrerDoc.id;
-                    
-                    // Create invited user data
                     const invitedUser = {
                         userId: newUserId,
                         email: newUserEmail,
                         date: firebase.firestore.FieldValue.serverTimestamp(),
                         pointsEarned: 10
                     };
-                    
-                    // Update referrer's document
-                    await db.collection('users').doc(referrerId).update({
-                        points: firebase.firestore.FieldValue.increment(10),
-                        invitedUsers: firebase.firestore.FieldValue.arrayUnion(invitedUser)
+
+                    await db.runTransaction(async (transaction) => {
+                        const doc = await transaction.get(referrerDoc.ref);
+                        const currentPoints = doc.data().points || 0;
+                        transaction.update(referrerDoc.ref, {
+                            points: currentPoints + 10,
+                            invitedUsers: firebase.firestore.FieldValue.arrayUnion(invitedUser)
+                        });
                     });
-                    
-                    console.log("Referrer points updated successfully");
                 }
             } catch (error) {
                 console.error("Error updating referrer points:", error);
             }
         }
 
-        // Login function
         async function login() {
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
@@ -257,7 +165,6 @@
             }
         }
 
-        // Message display functions
         function showMessage(message, type) {
             const msgDiv = document.getElementById('message');
             msgDiv.textContent = message;
@@ -270,7 +177,6 @@
             msgDiv.className = type;
         }
 
-        // Check auth state
         auth.onAuthStateChanged((user) => {
             if (user) window.location.href = 'home.html';
         });
