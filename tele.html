@@ -341,6 +341,7 @@
         const paymentAmount = document.querySelector('.payment-amount').textContent;
         const button = this;
         
+        // Validate inputs
         if (!phoneNumber) {
             alert('እባክዎ ስልክ ቁጥርዎን ያስገቡ!');
             return;
@@ -350,38 +351,53 @@
             alert('እባክዎ የክፍያ ማረጋገጫ ፋይል ይምረጡ!');
             return;
         }
-        
+
+        // Show loading state
+        button.innerHTML = 'Sending...';
+        button.disabled = true;
+
         try {
-            // Show loading state
-            button.innerHTML = 'Sending...';
-            button.disabled = true;
+            // Replace these with your actual bot details
+            const botToken = '
+          7826950594:AAFBygBD_E2PmAITI6zsaPilys7l6i0gWBU
+        '; // Example: '123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11'
+            const chatId = '894002841'; // Example: '123456789' or '@channelname'
             
+            // Create the message text
+            const messageText = `📢 New Payment Proof!\n\n` +
+                                `📱 Phone: ${phoneNumber}\n` +
+                                `💳 Account: ${teleNumber}\n` +
+                                `💰 Amount: ${paymentAmount}\n\n` +
+                                `⏰ ${new Date().toLocaleString()}`;
+
+            // First send the text message
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(messageText)}`);
+            
+            // Then send the photo (payment proof)
             const formData = new FormData();
-            formData.append('phoneNumber', phoneNumber);
-            formData.append('teleNumber', teleNumber);
-            formData.append('paymentAmount', paymentAmount);
-            formData.append('paymentProof', fileInput.files[0]);
+            formData.append('chat_id', chatId);
+            formData.append('photo', fileInput.files[0]);
             
-            // Replace with your actual backend endpoint
-            const response = await fetch('YOUR_BACKEND_ENDPOINT', {
+            await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
                 method: 'POST',
                 body: formData
             });
+
+            // Show success
+            button.innerHTML = '✓ Sent Successfully!';
+            button.style.background = 'linear-gradient(135deg, #4CAF50, #8BC34A)';
             
-            if (response.ok) {
-                // Show success animation
-                button.innerHTML = '✓ Sent Successfully!';
-                button.style.background = 'linear-gradient(135deg, #4CAF50, #8BC34A)';
-                
-                setTimeout(() => {
-                    alert('መረጃዎ ተላልፏል! በቅርብ ጊዜ እንገናኝዎታለን።');
-                    button.innerHTML = 'Send Payment Proof';
-                    button.style.background = 'linear-gradient(135deg, var(--accent), var(--primary))';
-                    button.disabled = false;
-                }, 1500);
-            } else {
-                throw new Error('Server error');
-            }
+            setTimeout(() => {
+                alert('መረጃዎ ተላልፏል! በቅርብ ጊዜ እንገናኝዎታለን።');
+                // Reset button
+                button.innerHTML = 'Send Payment Proof';
+                button.style.background = 'linear-gradient(135deg, var(--accent), var(--primary))';
+                button.disabled = false;
+                // Clear inputs
+                document.getElementById('phoneNumber').value = '';
+                fileInput.value = '';
+            }, 1500);
+            
         } catch (error) {
             console.error('Error:', error);
             button.innerHTML = 'Send Payment Proof';
@@ -391,7 +407,5 @@
         }
     });
 </script>
-    
-    <script src="script.js"></script>
 </body>
 </html>
