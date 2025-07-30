@@ -1,421 +1,191 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Admin Panel - VideoCall</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .login-form {
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        button:hover {
-            background-color: #0069d9;
-        }
-        #message {
-            margin: 15px 0;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        .admin-dashboard {
-            display: none;
-        }
-        .deposit-list {
-            margin: 20px 0;
-        }
-        .deposit-item {
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .deposit-info {
-            flex: 1;
-        }
-        .deposit-amount {
-            font-weight: bold;
-            font-size: 18px;
-            color: #28a745;
-        }
-        .deposit-user {
-            color: #6c757d;
-            margin: 5px 0;
-        }
-        .deposit-date {
-            font-size: 12px;
-            color: #6c757d;
-        }
-        .deposit-proof {
-            max-width: 300px;
-            max-height: 200px;
-            margin-left: 20px;
-            cursor: pointer;
-        }
-        .deposit-proof img {
-            max-width: 100%;
-            max-height: 100%;
-            border-radius: 4px;
-        }
-        .deposit-actions {
-            margin-left: 20px;
-        }
-        .action-btn {
-            padding: 8px 15px;
-            margin-left: 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            border: none;
-        }
-        .verify-btn {
-            background-color: #28a745;
-            color: white;
-        }
-        .reject-btn {
-            background-color: #dc3545;
-            color: white;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 80%;
-            max-height: 80%;
-            overflow: auto;
-        }
-        .modal-content img {
-            max-width: 100%;
-            max-height: 80vh;
-        }
-        .close-modal {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            color: white;
-            font-size: 30px;
-            cursor: pointer;
-        }
-        .logout-btn {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 20px;
-        }
-        .logout-btn:hover {
-            background-color: #c82333;
-        }
-        .no-deposits {
-            text-align: center;
-            padding: 20px;
-            color: #6c757d;
-            font-style: italic;
-        }
-    </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - VideoCall</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .alert { padding: 15px; margin-bottom: 20px; border-radius: 4px; }
+    .alert-error { background-color: #f8d7da; color: #721c24; }
+    .alert-info { background-color: #d1ecf1; color: #0c5460; }
+    .alert-warning { background-color: #fff3cd; color: #856404; }
+    .alert-success { background-color: #d4edda; color: #155724; }
+    #loadingIndicator { margin: 20px 0; font-weight: bold; }
+    .deposit-item { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 4px; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Admin Panel</h1>
+  <h1>Admin Panel</h1>
+  <h2>Pending Deposits</h2>
+  
+  <div id="loadingIndicator" style="display:none;">
+    Loading deposits...
+  </div>
+  
+  <div id="errorMessage" class="alert" style="display:none;"></div>
+  
+  <div id="depositsContainer">
+    <!-- Deposits will be loaded here -->
+  </div>
+
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+      authDomain: "newporoject-c6f66.firebaseapp.com",
+      databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+      projectId: "newporoject-c6f66",
+      storageBucket: "newporoject-c6f66.appspot.com",
+      messagingSenderId: "733557611631",
+      appId: "1:733557611631:web:02c9377f56d614ff3b019a",
+      measurementId: "G-53BEVW33FP"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const auth = firebase.auth();
+
+    // DOM Elements
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const errorMessage = document.getElementById('errorMessage');
+    const depositsContainer = document.getElementById('depositsContainer');
+
+    // Show message function
+    function showMessage(message, type = 'error') {
+      errorMessage.textContent = message;
+      errorMessage.className = `alert alert-${type}`;
+      errorMessage.style.display = 'block';
+    }
+
+    // Hide message function
+    function hideMessage() {
+      errorMessage.style.display = 'none';
+    }
+
+    // Show loading indicator
+    function showLoading(state) {
+      loadingIndicator.style.display = state ? 'block' : 'none';
+    }
+
+    // Format date
+    function formatDate(timestamp) {
+      if (!timestamp) return 'N/A';
+      const date = new Date(timestamp);
+      return date.toLocaleString();
+    }
+
+    // Render deposit items
+    function renderDeposits(deposits) {
+      depositsContainer.innerHTML = '';
+      
+      if (!deposits || Object.keys(deposits).length === 0) {
+        showMessage('No pending deposits found', 'info');
+        return;
+      }
+      
+      hideMessage();
+      
+      Object.entries(deposits).forEach(([key, deposit]) => {
+        const depositItem = document.createElement('div');
+        depositItem.className = 'deposit-item';
+        depositItem.innerHTML = `
+          <h3>Deposit ID: ${key}</h3>
+          <p><strong>Amount:</strong> ${deposit.amount || 'N/A'}</p>
+          <p><strong>User:</strong> ${deposit.userId || 'N/A'}</p>
+          <p><strong>Submitted:</strong> ${formatDate(deposit.timestamp)}</p>
+          <p><strong>Status:</strong> ${deposit.status || 'pending'}</p>
+          <button onclick="processDeposit('${key}')">Process Deposit</button>
+        `;
+        depositsContainer.appendChild(depositItem);
+      });
+    }
+
+    // Process deposit function
+    function processDeposit(depositId) {
+      if (!confirm('Are you sure you want to process this deposit?')) return;
+      
+      showLoading(true);
+      database.ref(`deposits/${depositId}/status`).set('processed')
+        .then(() => {
+          showMessage('Deposit processed successfully!', 'success');
+          loadDeposits();
+        })
+        .catch(error => {
+          console.error('Error processing deposit:', error);
+          showMessage('Error processing deposit. Please try again.');
+        })
+        .finally(() => {
+          showLoading(false);
+        });
+    }
+
+    // Load deposits function
+    function loadDeposits() {
+      showLoading(true);
+      hideMessage();
+      
+      try {
+        const depositsRef = database.ref('deposits');
         
-        <div id="login-section">
-            <div class="login-form">
-                <h2>Admin Login</h2>
-                <div id="message"></div>
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" placeholder="Enter username">
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Enter password">
-                </div>
-                <button onclick="adminLogin()">Login</button>
-            </div>
-        </div>
-        
-        <div id="admin-dashboard" class="admin-dashboard">
-            <h2>Pending Deposits</h2>
-            <div class="deposit-list" id="deposit-list">
-                <div class="no-deposits">Loading...</div>
-            </div>
-            
-            <button class="logout-btn" onclick="adminLogout()">
-                <i class="fas fa-sign-out-alt"></i> Log Out
-            </button>
-        </div>
-    </div>
-    
-    <div id="proof-modal" class="modal">
-        <span class="close-modal" onclick="closeModal()">&times;</span>
-        <div class="modal-content">
-            <img id="modal-proof" src="" alt="Deposit Proof">
-        </div>
-    </div>
+        depositsRef.orderByChild('status').equalTo('pending').on('value', (snapshot) => {
+          try {
+            const data = snapshot.val();
+            renderDeposits(data);
+          } catch (error) {
+            console.error('Data processing error:', error);
+            showMessage('Error processing deposits data');
+          } finally {
+            showLoading(false);
+          }
+        }, (error) => {
+          console.error('Database read error:', error);
+          showMessage('Error loading deposits from database');
+          showLoading(false);
+        });
+      } catch (error) {
+        console.error('Function error:', error);
+        showMessage('System error while loading deposits');
+        showLoading(false);
+      }
+    }
 
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    // Check authentication and load data
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        // Verify admin status (you may need to implement custom claims)
+        user.getIdTokenResult().then((idTokenResult) => {
+          if (idTokenResult.claims.admin) {
+            // Monitor connection state
+            database.ref('.info/connected').on('value', (snapshot) => {
+              if (snapshot.val() === true) {
+                console.log('Connected to Firebase');
+                loadDeposits();
+              } else {
+                console.log('Not connected to database');
+                showMessage('Connection lost. Trying to reconnect...', 'warning');
+              }
+            });
+          } else {
+            showMessage('You do not have admin privileges', 'error');
+            setTimeout(() => {
+              auth.signOut();
+              window.location.href = 'login.html';
+            }, 3000);
+          }
+        });
+      } else {
+        window.location.href = 'login.html';
+      }
+    });
 
-    <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-  apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
-  authDomain: "newporoject-c6f66.firebaseapp.com",
-  databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
-  projectId: "newporoject-c6f66",
-  storageBucket: "newporoject-c6f66.appspot.com", // Make sure this is correct
-  messagingSenderId: "733557611631",
-  appId: "1:733557611631:web:02c9377f56d614ff3b019a",
-  measurementId: "G-53BEVW33FP"
-};
-
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const storage = firebase.storage();
-
-        // Admin credentials
-        const ADMIN_USERNAME = "Abenezer";
-        const ADMIN_PASSWORD = "1234";
-
-        // DOM elements
-        const loginSection = document.getElementById('login-section');
-        const adminDashboard = document.getElementById('admin-dashboard');
-        const depositList = document.getElementById('deposit-list');
-        const proofModal = document.getElementById('proof-modal');
-        const modalProof = document.getElementById('modal-proof');
-        const messageDiv = document.getElementById('message');
-
-        // Check if admin is already logged in
-        if (sessionStorage.getItem('adminLoggedIn') === 'true') {
-            showAdminDashboard();
-            loadPendingDeposits();
-        }
-
-        // Admin login function
-        function adminLogin() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-                sessionStorage.setItem('adminLoggedIn', 'true');
-                showAdminDashboard();
-                loadPendingDeposits();
-            } else {
-                showMessage('Invalid username or password', 'error');
-            }
-        }
-
-        // Admin logout function
-        function adminLogout() {
-            sessionStorage.removeItem('adminLoggedIn');
-            showLoginForm();
-        }
-
-        // Show admin dashboard
-        function showAdminDashboard() {
-            loginSection.style.display = 'none';
-            adminDashboard.style.display = 'block';
-        }
-
-        // Show login form
-        function showLoginForm() {
-            loginSection.style.display = 'block';
-            adminDashboard.style.display = 'none';
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-        }
-
-        // Show message
-        function showMessage(message, type) {
-            messageDiv.textContent = message;
-            messageDiv.className = type;
-        }
-
-        // Load pending deposits
-        function loadPendingDeposits() {
-            db.collection('deposits')
-                .where('status', '==', 'pending')
-                .orderBy('timestamp', 'desc')
-                .get()
-                .then((querySnapshot) => {
-                    depositList.innerHTML = '';
-                    
-                    if (querySnapshot.empty) {
-                        depositList.innerHTML = '<div class="no-deposits">No pending deposits</div>';
-                        return;
-                    }
-                    
-                    querySnapshot.forEach((doc) => {
-                        const deposit = doc.data();
-                        const date = deposit.timestamp.toDate();
-                        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-                        
-                        const depositItem = document.createElement('div');
-                        depositItem.className = 'deposit-item';
-                        depositItem.innerHTML = `
-                            <div class="deposit-info">
-                                <div class="deposit-amount">${deposit.amount} USDT</div>
-                                <div class="deposit-user">User: ${deposit.userId}</div>
-                                <div class="deposit-date">${formattedDate}</div>
-                                <div>Tx Hash: ${deposit.transactionHash}</div>
-                            </div>
-                            <div class="deposit-proof" onclick="viewProof('${deposit.screenshotUrl}')">
-                                <img src="${deposit.screenshotUrl}" alt="Proof" style="max-width: 100px; max-height: 60px;">
-                            </div>
-                            <div class="deposit-actions">
-                                <button class="action-btn verify-btn" onclick="verifyDeposit('${doc.id}', '${deposit.userId}', ${deposit.amount})">
-                                    <i class="fas fa-check"></i> Verify
-                                </button>
-                                <button class="action-btn reject-btn" onclick="rejectDeposit('${doc.id}')">
-                                    <i class="fas fa-times"></i> Reject
-                                </button>
-                            </div>
-                        `;
-                        depositList.appendChild(depositItem);
-                    });
-                })
-                .catch((error) => {
-                    console.error("Error loading deposits:", error);
-                    depositList.innerHTML = '<div class="no-deposits">Error loading deposits</div>';
-                });
-        }
-
-        // View proof in modal
-        function viewProof(imageUrl) {
-            modalProof.src = imageUrl;
-            proofModal.style.display = 'flex';
-        }
-
-        // Close modal
-        function closeModal() {
-            proofModal.style.display = 'none';
-        }
-
-        // Verify deposit
-        async function verifyDeposit(depositId, userId, amount) {
-            if (!confirm(`Are you sure you want to verify this deposit of ${amount} USDT?`)) {
-                return;
-            }
-            
-            try {
-                // Update deposit status
-                await db.collection('deposits').doc(depositId).update({
-                    status: 'completed',
-                    verifiedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                // Add balance to user's account
-                await db.collection('users').doc(userId).update({
-                    depositBalance: firebase.firestore.FieldValue.increment(amount)
-                });
-                
-                alert('Deposit verified successfully!');
-                loadPendingDeposits();
-                
-            } catch (error) {
-                console.error("Error verifying deposit:", error);
-                alert('Error verifying deposit. Please try again.');
-            }
-        }
-
-        // Reject deposit
-        async function rejectDeposit(depositId) {
-            if (!confirm('Are you sure you want to reject this deposit?')) {
-                return;
-            }
-            
-            try {
-                await db.collection('deposits').doc(depositId).update({
-                    status: 'rejected',
-                    verifiedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                alert('Deposit rejected successfully!');
-                loadPendingDeposits();
-                
-            } catch (error) {
-                console.error("Error rejecting deposit:", error);
-                alert('Error rejecting deposit. Please try again.');
-            }
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            if (event.target === proofModal) {
-                closeModal();
-            }
-        };
-    </script>
+    // Make processDeposit available globally
+    window.processDeposit = processDeposit;
+  </script>
 </body>
 </html>
