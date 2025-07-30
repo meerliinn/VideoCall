@@ -54,6 +54,10 @@
             display: flex;
             justify-content: space-between;
         }
+        .user-date {
+            font-size: 12px;
+            color: #6c757d;
+        }
         .no-users {
             color: #6c757d;
             font-style: italic;
@@ -173,48 +177,40 @@
                         document.getElementById('points-balance').textContent = userData.points || 0;
                         
                         // Load invited users
-                        loadInvitedUsers(userData.invitedUsers || []);
+                        if (userData.invitedUsers && userData.invitedUsers.length > 0) {
+                            displayInvitedUsers(userData.invitedUsers);
+                        } else {
+                            document.getElementById('invitedUsersList').innerHTML = 
+                                '<div class="no-users">No invited users yet</div>';
+                        }
                     }
                 });
         }
 
-        // Load and display invited users
-        async function loadInvitedUsers(userIds) {
+        // Display invited users list
+        function displayInvitedUsers(invitedUsers) {
             const userList = document.getElementById('invitedUsersList');
+            userList.innerHTML = '';
             
-            if (userIds.length === 0) {
-                userList.innerHTML = '<div class="no-users">No invited users yet</div>';
-                return;
-            }
-
-            userList.innerHTML = '<div>Loading users...</div>';
+            // Sort by date (newest first)
+            invitedUsers.sort((a, b) => b.date.toDate() - a.date.toDate());
             
-            try {
-                const usersSnapshot = await db.collection('users')
-                    .where(firebase.firestore.FieldPath.documentId(), 'in', userIds)
-                    .get();
-
-                userList.innerHTML = '';
+            invitedUsers.forEach(user => {
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
                 
-                if (usersSnapshot.empty) {
-                    userList.innerHTML = '<div class="no-users">No user details found</div>';
-                    return;
-                }
-
-                usersSnapshot.forEach(doc => {
-                    const userData = doc.data();
-                    const userItem = document.createElement('div');
-                    userItem.className = 'user-item';
-                    userItem.innerHTML = `
-                        <span>${userData.email}</span>
-                        <span>+10 points</span>
-                    `;
-                    userList.appendChild(userItem);
-                });
-            } catch (error) {
-                console.error("Error loading invited users:", error);
-                userList.innerHTML = '<div class="no-users">Error loading users</div>';
-            }
+                const date = user.date.toDate();
+                const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                
+                userItem.innerHTML = `
+                    <div>
+                        <div>${user.email}</div>
+                        <div class="user-date">${formattedDate}</div>
+                    </div>
+                    <div>+10 points</div>
+                `;
+                userList.appendChild(userItem);
+            });
         }
 
         // Logout function
