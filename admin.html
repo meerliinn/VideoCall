@@ -90,17 +90,29 @@
             });
         }
 
-        // Approve deposit
+        // Approve deposit (fixed version)
         async function approveDeposit(depositId, userId, amount) {
             if (!confirm(`Approve $${amount} USDT deposit?`)) return;
             
             try {
-                // First update user balance
-                await db.collection('users').doc(userId).update({
-                    depositBalance: firebase.firestore.FieldValue.increment(parseFloat(amount))
-                });
+                // First check if user document exists
+                const userRef = db.collection('users').doc(userId);
+                const userDoc = await userRef.get();
                 
-                // Then update deposit status
+                if (!userDoc.exists) {
+                    // Create user document if it doesn't exist
+                    await userRef.set({
+                        depositBalance: parseFloat(amount),
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } else {
+                    // Update existing user balance
+                    await userRef.update({
+                        depositBalance: firebase.firestore.FieldValue.increment(parseFloat(amount))
+                    });
+                }
+                
+                // Update deposit status
                 await rdb.ref(`deposits/${depositId}`).update({ 
                     status: 'approved',
                     processedAt: Date.now()
