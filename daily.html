@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Daily Tasks - VideoCall</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .balance-card {
+            background-color: #17a2b8;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .balance-amount {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .task-section {
+            margin: 30px 0;
+        }
+        .task-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background-color: #f8f9fa;
+        }
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .task-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .task-reward {
+            font-size: 16px;
+            font-weight: bold;
+            color: #28a745;
+        }
+        .task-description {
+            margin-bottom: 10px;
+            color: #6c757d;
+        }
+        .claim-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .claim-btn:hover {
+            background-color: #218838;
+        }
+        .claim-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .nav-menu {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+        }
+        .nav-btn {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            flex: 1;
+            margin: 0 5px;
+            transition: all 0.3s;
+        }
+        .nav-btn:hover {
+            background-color: #e9ecef;
+            transform: translateY(-3px);
+        }
+        .nav-btn i {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .back-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+        .no-tasks {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        .task-status {
+            font-size: 14px;
+            color: #6c757d;
+            margin-top: 5px;
+            text-align: right;
+        }
+        .task-completed {
+            color: #28a745;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Daily Tasks</h1>
+        
+        <div class="balance-card">
+            <div>Your Earnings Balance</div>
+            <div class="balance-amount" id="earning-balance">0</div>
+            <div>USDT</div>
+        </div>
+        
+        <div class="task-section">
+            <h3>Your Daily Earnings</h3>
+            <div id="tasks-list">
+                <div class="no-tasks">Loading your tasks...</div>
+            </div>
+        </div>
+        
+        <div class="nav-menu">
+            <div class="nav-btn" onclick="window.location.href='home.html'">
+                <i class="fas fa-home"></i>
+                <div>Home</div>
+            </div>
+            <div class="nav-btn" onclick="window.location.href='deposit.html'">
+                <i class="fas fa-money-bill-wave"></i>
+                <div>Deposit</div>
+            </div>
+            <div class="nav-btn" onclick="window.location.href='product.html'">
+                <i class="fas fa-gem"></i>
+                <div>Products</div>
+            </div>
+        </div>
+        
+        <button class="back-btn" onclick="window.location.href='home.html'">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // DOM elements
+        const earningBalanceEl = document.getElementById('earning-balance');
+        const tasksList = document.getElementById('tasks-list');
+
+        // Check authentication state
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'sign.html';
+            } else {
+                loadUserData(user.uid);
+                loadDailyTasks(user.uid);
+            }
+        });
+
+        // Load user data
+        function loadUserData(userId) {
+            db.collection('users').doc(userId).get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        earningBalanceEl.textContent = userData.taskEarnings ? userData.taskEarnings.toFixed(2) : '0.00';
+                    }
+                });
+        }
+
+        // Load daily tasks based on active investments
+        function loadDailyTasks(userId) {
+            db.collection('investments')
+                .where('userId', '==', userId)
+                .where('status', '==', 'active')
+                .get()
+                .then((querySnapshot) => {
+                    tasksList.innerHTML = '';
+                    
+                    if (querySnapshot.empty) {
+                        tasksList.innerHTML = '<div class="no-tasks">No active investments found. Purchase a product to start earning daily rewards.</div>';
+                        return;
+                    }
+                    
+                    querySnapshot.forEach((doc) => {
+                        const investment = doc.data();
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        
+                        // Check if earnings were already claimed today
+                        const lastClaimDate = investment.lastPayoutDate ? investment.lastPayoutDate.toDate() : null;
+                        const alreadyClaimed = lastClaimDate && lastClaimDate >= today;
+                        
+                        // Calculate daily earnings
+                        let dailyEarnings = 0;
+                        if (investment.isFixed) {
+                            dailyEarnings = investment.dailyEarnings;
+                        } else {
+                            dailyEarnings = (investment.amount * investment.dailyEarnings) / 100;
+                        }
+                        
+                        const taskItem = document.createElement('div');
+                        taskItem.className = 'task-item';
+                        taskItem.innerHTML = `
+                            <div class="task-header">
+                                <div class="task-title">${investment.productName}</div>
+                                <div class="task-reward">+${dailyEarnings.toFixed(2)} USDT</div>
+                            </div>
+                            <div class="task-description">
+                                Claim your daily earnings from this investment package.
+                            </div>
+                            <button class="claim-btn" onclick="claimDailyEarnings('${doc.id}', ${dailyEarnings})" 
+                                ${alreadyClaimed ? 'disabled' : ''}>
+                                ${alreadyClaimed ? 'Already Claimed Today' : 'Claim Earnings'}
+                            </button>
+                            ${alreadyClaimed ? 
+                                `<div class="task-status task-completed">Last claimed: ${lastClaimDate.toLocaleString()}</div>` : 
+                                ''}
+                        `;
+                        tasksList.appendChild(taskItem);
+                    });
+                });
+        }
+
+        // Claim daily earnings
+        async function claimDailyEarnings(investmentId, amount) {
+            const user = auth.currentUser;
+            if (!user) {
+                window.location.href = 'sign.html';
+                return;
+            }
+            
+            try {
+                // Update investment record with last claim date
+                await db.collection('investments').doc(investmentId).update({
+                    lastPayoutDate: firebase.firestore.FieldValue.serverTimestamp(),
+                    totalEarned: firebase.firestore.FieldValue.increment(amount)
+                });
+                
+                // Update user's earnings balance
+                await db.collection('users').doc(user.uid).update({
+                    taskEarnings: firebase.firestore.FieldValue.increment(amount)
+                });
+                
+                alert(`Successfully claimed ${amount.toFixed(2)} USDT!`);
+                
+                // Refresh data
+                loadUserData(user.uid);
+                loadDailyTasks(user.uid);
+                
+            } catch (error) {
+                console.error('Error claiming earnings:', error);
+                alert('Error claiming earnings. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>
