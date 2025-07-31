@@ -1,33 +1,113 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Panel</title>
+    <title>Deposit - VideoCall</title>
     <style>
-        body {font-family:Arial;margin:20px}
-        .deposit {border:1px solid #ccc;padding:10px;margin-bottom:10px;background:#f9f9f9}
-        button {padding:5px 10px;margin-right:5px;cursor:pointer}
-        .approve {background:#4CAF50;color:white;border:none}
-        .reject {background:#f44336;color:white;border:none}
-        img {max-width:300px;display:block;margin-top:5px}
-        h1 {color:#333}
-        .user-info {margin-bottom:5px}
-        .timestamp {color:#666;font-size:12px}
-        .status-pending {color:#FF9800}
-        .status-approved {color:#4CAF50}
-        .status-rejected {color:#f44336}
+        body {font-family:Arial,sans-serif;margin:0;padding:20px;background:#f4f4f4}
+        .container {max-width:600px;margin:0 auto;background:#fff;padding:30px;border-radius:8px;box-shadow:0 0 15px rgba(0,0,0,0.1)}
+        h1 {color:#333;text-align:center;margin-bottom:30px}
+        .balance-card {background:#28a745;color:white;padding:20px;border-radius:8px;text-align:center;margin:20px 0}
+        .balance-amount {font-size:36px;font-weight:bold;margin:10px 0}
+        .wallet-info {background:#f8f9fa;padding:20px;border-radius:8px;margin:20px 0;word-break:break-all}
+        .copy-btn {display:block;width:100%;padding:10px;background:#17a2b8;color:white;border:none;border-radius:4px;cursor:pointer;margin-top:10px}
+        .copy-btn:hover {background:#138496}
+        .form-group {margin-bottom:15px}
+        label {display:block;margin-bottom:5px;font-weight:bold}
+        input, select {width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box}
+        .file-upload {border:2px dashed #ddd;padding:20px;text-align:center;border-radius:4px;margin:10px 0}
+        .file-upload input {display:none}
+        .file-upload-label {display:block;cursor:pointer}
+        .preview-image {max-width:100%;margin-top:10px;display:none}
+        .submit-btn {width:100%;padding:12px;background:#007bff;color:white;border:none;border-radius:4px;cursor:pointer;font-size:16px;margin-top:10px}
+        .submit-btn:hover {background:#0069d9}
+        .history-item {padding:15px;border-bottom:1px solid #eee;display:flex;justify-content:space-between}
+        .history-amount {font-weight:bold;color:#28a745}
+        .history-date {color:#6c757d;font-size:12px}
+        .status-pending {background:#ffc107;color:#212529}
+        .status-completed {background:#28a745;color:white}
+        .status-rejected {background:#dc3545;color:white}
+        .nav-menu {display:flex;justify-content:space-around;margin:30px 0}
+        .nav-btn {padding:15px;background:#f8f9fa;border-radius:8px;text-align:center;cursor:pointer;flex:1;margin:0 5px;transition:all 0.3s}
+        .nav-btn:hover {background:#e9ecef;transform:translateY(-3px)}
+        .nav-btn i {font-size:24px;margin-bottom:10px}
+        .back-btn {display:block;width:100%;padding:10px;background:#6c757d;color:white;border:none;border-radius:4px;cursor:pointer;margin-top:20px;text-align:center}
+        .back-btn:hover {background:#5a6268}
+        .note {font-size:12px;color:#6c757d;margin-top:5px}
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <h1>Deposit Approvals</h1>
-    <div id="deposits"></div>
+    <div class="container">
+        <h1>Deposit USDT (TRC20)</h1>
+        
+        <div class="balance-card">
+            <div>Your Deposit Balance</div>
+            <div class="balance-amount" id="deposit-balance">0</div>
+            <div>USDT</div>
+        </div>
+        
+        <div class="wallet-info">
+            <h3>Our TRC20 Wallet Address</h3>
+            <div id="wallet-address">hdzxjrjxfxfjrsarjjztjrz13fghh</div>
+            <button class="copy-btn" onclick="copyWalletAddress()">
+                <i class="fas fa-copy"></i> Copy Address
+            </button>
+            <p class="note">Minimum deposit: 10 USDT. Only TRC20 network supported.</p>
+        </div>
+        
+        <div class="deposit-form">
+            <h3>Submit Deposit Proof</h3>
+            <div class="form-group">
+                <label for="deposit-amount">Amount (USDT)</label>
+                <input type="number" id="deposit-amount" placeholder="10" min="10" step="0.01">
+            </div>
+            <div class="form-group">
+                <label for="transaction-hash">Transaction Hash</label>
+                <input type="text" id="transaction-hash" placeholder="Enter transaction hash">
+            </div>
+            <div class="form-group">
+                <label>Screenshot Proof</label>
+                <div class="file-upload">
+                    <input type="file" id="screenshot" accept="image/*">
+                    <label for="screenshot" class="file-upload-label">
+                        <i class="fas fa-cloud-upload-alt" style="font-size:24px"></i><br>
+                        Click to upload screenshot
+                    </label>
+                    <img id="preview" class="preview-image" alt="Preview">
+                </div>
+            </div>
+            <button class="submit-btn" onclick="submitDeposit()">
+                <i class="fas fa-paper-plane"></i> Submit Deposit
+            </button>
+        </div>
+        
+        <div class="history-section">
+            <h3>Deposit History</h3>
+            <div id="deposit-history"></div>
+        </div>
+        
+        <div class="nav-menu">
+            <div class="nav-btn" onclick="window.location.href='home.html'">
+                <i class="fas fa-home"></i> Home
+            </div>
+            <div class="nav-btn" onclick="window.location.href='withdraw.html'">
+                <i class="fas fa-money-bill-wave"></i> Withdraw
+            </div>
+        </div>
+        
+        <button class="back-btn" onclick="window.location.href='home.html'">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </button>
+    </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
     <script>
-        // Firebase Configuration
+        // Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
             authDomain: "newporoject-c6f66.firebaseapp.com",
@@ -35,91 +115,134 @@
             projectId: "newporoject-c6f66",
             storageBucket: "newporoject-c6f66.appspot.com",
             messagingSenderId: "733557611631",
-            appId: "1:733557611631:web:02c9377f56d614ff3b019a",
-            measurementId: "G-53BEVW33FP"
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
         };
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
-        const rdb = firebase.database();
+        const auth = firebase.auth();
         const db = firebase.firestore();
+        const rdb = firebase.database();
+        const storage = firebase.storage();
 
-        function loadDeposits() {
-            rdb.ref('deposits').orderByChild('timestamp').on('value', (snapshot) => {
-                const depositsDiv = document.getElementById('deposits');
-                depositsDiv.innerHTML = '';
-                
-                if (!snapshot.exists()) {
-                    depositsDiv.innerHTML = '<p>No pending deposits found</p>';
-                    return;
-                }
+        // Check auth state
+        auth.onAuthStateChanged((user) => {
+            if (!user) window.location.href = 'sign.html';
+            else {
+                loadUserData(user.uid);
+                loadDepositHistory(user.uid);
+            }
+        });
 
-                // Convert to array and reverse to show newest first
-                const deposits = [];
-                snapshot.forEach((childSnapshot) => {
-                    const deposit = childSnapshot.val();
-                    deposit.id = childSnapshot.key;
-                    deposits.push(deposit);
+        // Load user balance
+        function loadUserData(userId) {
+            db.collection('users').doc(userId).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const balance = doc.data().depositBalance || 0;
+                        document.getElementById('deposit-balance').textContent = balance.toFixed(2);
+                    }
                 });
-                
-                deposits.reverse().forEach((deposit) => {
-                    const div = document.createElement('div');
-                    div.className = 'deposit';
-                    
-                    const date = new Date(deposit.timestamp);
-                    const formattedDate = date.toLocaleString();
-                    
-                    let statusClass = 'status-pending';
-                    if (deposit.status === 'approved') statusClass = 'status-approved';
-                    if (deposit.status === 'rejected') statusClass = 'status-rejected';
-                    
-                    div.innerHTML = `
-                        <div class="user-info"><strong>User ID:</strong> ${deposit.userId || 'N/A'}</div>
-                        <div class="user-info"><strong>Amount:</strong> $${deposit.amount || '0'} USDT</div>
-                        <div class="user-info"><strong>Transaction Hash:</strong> ${deposit.transactionHash || 'N/A'}</div>
-                        <div class="user-info"><strong>Status:</strong> <span class="${statusClass}">${deposit.status || 'pending'}</span></div>
-                        <div class="timestamp">Submitted: ${formattedDate}</div>
-                        ${deposit.proofImage ? `<img src="${deposit.proofImage}" alt="Proof">` : ''}
-                        <div style="margin-top:10px">
-                            ${deposit.status !== 'approved' ? `<button class="approve" onclick="approveDeposit('${deposit.id}', '${deposit.userId}', ${deposit.amount})">Approve</button>` : ''}
-                            ${deposit.status !== 'rejected' ? `<button class="reject" onclick="rejectDeposit('${deposit.id}')">Reject</button>` : ''}
-                        </div>
-                    `;
-                    depositsDiv.appendChild(div);
-                });
-            });
         }
 
-        async function approveDeposit(depositId, userId, amount) {
+        // Load deposit history
+        function loadDepositHistory(userId) {
+            rdb.ref('deposits').orderByChild('userId').equalTo(userId).once('value')
+                .then(snapshot => {
+                    const historyEl = document.getElementById('deposit-history');
+                    historyEl.innerHTML = '';
+                    
+                    if (!snapshot.exists()) {
+                        historyEl.innerHTML = '<p style="text-align:center;color:#6c757d">No deposits yet</p>';
+                        return;
+                    }
+                    
+                    snapshot.forEach(child => {
+                        const deposit = child.val();
+                        const date = new Date(deposit.timestamp);
+                        const statusClass = deposit.status === 'approved' ? 'status-completed' : 
+                                          deposit.status === 'rejected' ? 'status-rejected' : 'status-pending';
+                        const statusText = deposit.status === 'approved' ? 'Approved' : 
+                                          deposit.status === 'rejected' ? 'Rejected' : 'Pending';
+                        
+                        const item = document.createElement('div');
+                        item.className = 'history-item';
+                        item.innerHTML = `
+                            <div>
+                                <div class="history-amount">${deposit.amount} USDT</div>
+                                <div class="history-date">${date.toLocaleString()}</div>
+                            </div>
+                            <div>
+                                <span class="${statusClass}">${statusText}</span>
+                            </div>
+                        `;
+                        historyEl.appendChild(item);
+                    });
+                });
+        }
+
+        // Copy wallet address
+        function copyWalletAddress() {
+            const address = document.getElementById('wallet-address');
+            navigator.clipboard.writeText(address.textContent)
+                .then(() => alert('Address copied!'))
+                .catch(() => alert('Failed to copy'));
+        }
+
+        // Preview image
+        document.getElementById('screenshot').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const preview = document.getElementById('preview');
+                    preview.src = event.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Submit deposit
+        async function submitDeposit() {
+            const amount = parseFloat(document.getElementById('deposit-amount').value);
+            const txHash = document.getElementById('transaction-hash').value.trim();
+            const file = document.getElementById('screenshot').files[0];
+            const user = auth.currentUser;
+            
+            if (!amount || amount < 10) return alert('Minimum deposit is 10 USDT');
+            if (!txHash) return alert('Enter transaction hash');
+            if (!file) return alert('Upload proof screenshot');
+            if (!user) return window.location.href = 'sign.html';
+            
             try {
-                // Update deposit status in Realtime DB
-                await rdb.ref(`deposits/${depositId}`).update({ 
-                    status: 'approved',
-                    processedAt: Date.now()
+                // Upload image
+                const storageRef = storage.ref(`deposit_proofs/${user.uid}/${Date.now()}_${file.name}`);
+                await storageRef.put(file);
+                const imageUrl = await storageRef.getDownloadURL();
+                
+                // Save deposit record
+                await rdb.ref('deposits').push({
+                    userId: user.uid,
+                    amount: amount.toFixed(2),
+                    transactionHash: txHash,
+                    proofImage: imageUrl,
+                    status: 'pending',
+                    timestamp: Date.now()
                 });
                 
-                // Update user balance in Firestore
-                await db.collection('users').doc(userId).update({
-                    depositBalance: firebase.firestore.FieldValue.increment(parseFloat(amount))
-                });
+                alert('Deposit submitted for review!');
+                document.getElementById('deposit-amount').value = '';
+                document.getElementById('transaction-hash').value = '';
+                document.getElementById('screenshot').value = '';
+                document.getElementById('preview').style.display = 'none';
+                loadDepositHistory(user.uid);
                 
-                alert('Deposit approved and user balance updated!');
             } catch (error) {
-                console.error('Error approving deposit:', error);
-                alert('Error approving deposit. Please try again.');
+                console.error(error);
+                alert('Deposit submission failed');
             }
         }
-
-        function rejectDeposit(depositId) {
-            if (confirm('Are you sure you want to reject this deposit?')) {
-                rdb.ref(`deposits/${depositId}`).update({ 
-                    status: 'rejected',
-                    processedAt: Date.now()
-                });
-            }
-        }
-
-        loadDeposits();
     </script>
 </body>
 </html>
