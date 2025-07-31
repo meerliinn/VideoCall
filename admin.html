@@ -2,57 +2,118 @@
 <html>
 <head>
     <title>Admin Panel</title>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
     <style>
-        body {font-family:Arial;margin:20px}
-        .deposit {border:1px solid #ccc;padding:10px;margin-bottom:10px}
-        button {padding:5px 10px;margin-right:5px}
-        .approve {background:#4CAF50;color:white}
-        .reject {background:#f44336;color:white}
-        img {max-width:300px;display:block;margin-top:5px}
+        body {font-family:Arial;margin:20px;background:#f5f5f5}
+        .deposit {border:1px solid #ddd;padding:15px;margin-bottom:15px;background:#fff;border-radius:5px}
+        button {padding:5px 10px;margin-right:5px;cursor:pointer;border-radius:3px}
+        .approve {background:#4CAF50;color:white;border:none}
+        .reject {background:#f44336;color:white;border:none}
+        img {max-width:300px;display:block;margin-top:5px;border:1px solid #eee}
+        h1 {color:#333}
+        .user-info {margin-bottom:5px}
+        .timestamp {color:#666;font-size:12px}
+        .status-pending {color:#FF9800}
+        .status-approved {color:#4CAF50}
+        .status-rejected {color:#f44336}
+        .login-form {max-width:400px;margin:50px auto;padding:20px;background:#fff;border-radius:5px}
+        .login-form input {width:100%;padding:10px;margin:10px 0;border:1px solid #ddd}
+        .login-form button {width:100%;padding:10px;background:#2196F3;color:white;border:none}
     </style>
 </head>
 <body>
-    <h1>Deposit Approvals</h1>
-    <div id="deposits"></div>
+    <div id="app">
+        <div id="login-form" class="login-form">
+            <h2>Admin Login</h2>
+            <input type="email" id="admin-email" placeholder="Admin Email">
+            <input type="password" id="admin-password" placeholder="Password">
+            <button onclick="adminLogin()">Login</button>
+        </div>
+        
+        <div id="admin-panel" style="display:none">
+            <h1>Deposit Approvals</h1>
+            <div id="deposits"></div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
-        firebase.initializeApp({
+        // Firebase Config (same as deposit.html)
+        const firebaseConfig = {
             apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
             authDomain: "newporoject-c6f66.firebaseapp.com",
             databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
             projectId: "newporoject-c6f66",
             storageBucket: "newporoject-c6f66.appspot.com",
             messagingSenderId: "733557611631",
-            appId: "1:733557611631:web:02c9377f56d614ff3b019a",
-            measurementId: "G-53BEVW33FP"
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const rdb = firebase.database();
+        const db = firebase.firestore();
+
+        // Check admin auth state
+        auth.onAuthStateChanged(user => {
+            if (user && user.email === 'admin@example.com') { // Change to your admin email
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                loadDeposits();
+            }
         });
 
-        const db = firebase.database();
+        // Admin login
+        function adminLogin() {
+            const email = document.getElementById('admin-email').value;
+            const password = document.getElementById('admin-password').value;
+            
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    if (email === 'admin@example.com') { // Change to your admin email
+                        document.getElementById('login-form').style.display = 'none';
+                        document.getElementById('admin-panel').style.display = 'block';
+                        loadDeposits();
+                    } else {
+                        auth.signOut();
+                        alert('Access denied');
+                    }
+                })
+                .catch(error => alert('Login failed: ' + error.message));
+        }
 
+        // Load deposits
         function loadDeposits() {
-            db.ref('deposits').on('value', (snapshot) => {
+            rdb.ref('deposits').orderByChild('timestamp').on('value', snapshot => {
                 const depositsDiv = document.getElementById('deposits');
                 depositsDiv.innerHTML = '';
                 
-                const data = snapshot.val();
-                if (!data) {
-                    depositsDiv.innerHTML = '<p>No deposits found</p>';
+                if (!snapshot.exists()) {
+                    depositsDiv.innerHTML = '<p>No pending deposits</p>';
                     return;
                 }
 
-                Object.entries(data).forEach(([key, deposit]) => {
+                snapshot.forEach(child => {
+                    const deposit = child.val();
+                    const date = new Date(deposit.timestamp);
+                    const statusClass = deposit.status === 'approved' ? 'status-approved' : 
+                                      deposit.status === 'rejected' ? 'status-rejected' : 'status-pending';
+                    
                     const div = document.createElement('div');
                     div.className = 'deposit';
                     div.innerHTML = `
-                        <p><strong>User:</strong> ${deposit.userId || 'N/A'}</p>
-                        <p><strong>Amount:</strong> $${deposit.amount || '0'}</p>
-                        <p><strong>Status:</strong> ${deposit.status || 'pending'}</p>
-                        ${deposit.proofImage ? `<img src="${deposit.proofImage}">` : ''}
-                        <div>
-                            <button class="approve" onclick="approve('${key}')">Approve</button>
-                            <button class="reject" onclick="reject('${key}')">Reject</button>
+                        <div class="user-info"><strong>User ID:</strong> ${deposit.userId}</div>
+                        <div class="user-info"><strong>Amount:</strong> $${deposit.amount} USDT</div>
+                        <div class="user-info"><strong>TX Hash:</strong> ${deposit.transactionHash}</div>
+                        <div class="user-info"><strong>Status:</strong> <span class="${statusClass}">${deposit.status || 'pending'}</span></div>
+                        <div class="timestamp">${date.toLocaleString()}</div>
+                        ${deposit.proofImage ? `<img src="${deposit.proofImage}" alt="Proof">` : ''}
+                        <div style="margin-top:10px">
+                            ${!deposit.status ? `<button class="approve" onclick="approveDeposit('${child.key}', '${deposit.userId}', ${deposit.amount})">Approve</button>` : ''}
+                            ${deposit.status !== 'rejected' ? `<button class="reject" onclick="rejectDeposit('${child.key}')">Reject</button>` : ''}
                         </div>
                     `;
                     depositsDiv.appendChild(div);
@@ -60,15 +121,38 @@
             });
         }
 
-        function approve(id) {
-            db.ref(`deposits/${id}`).update({ status: 'approved' });
+        // Approve deposit
+        async function approveDeposit(depositId, userId, amount) {
+            if (!confirm(`Approve $${amount} USDT deposit?`)) return;
+            
+            try {
+                // Update deposit status
+                await rdb.ref(`deposits/${depositId}`).update({ 
+                    status: 'approved',
+                    processedAt: Date.now()
+                });
+                
+                // Update user balance
+                await db.collection('users').doc(userId).update({
+                    depositBalance: firebase.firestore.FieldValue.increment(parseFloat(amount))
+                });
+                
+                alert('Deposit approved!');
+            } catch (error) {
+                console.error(error);
+                alert('Approval failed');
+            }
         }
 
-        function reject(id) {
-            db.ref(`deposits/${id}`).update({ status: 'rejected' });
+        // Reject deposit
+        function rejectDeposit(depositId) {
+            if (confirm('Reject this deposit?')) {
+                rdb.ref(`deposits/${depositId}`).update({ 
+                    status: 'rejected',
+                    processedAt: Date.now()
+                });
+            }
         }
-
-        loadDeposits();
     </script>
 </body>
 </html>
