@@ -1,10 +1,90 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Panel</title>
+    <title>Admin Panel - Deposit Verification</title>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage-compat.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        #auth-section, #admin-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        input {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        button.reject {
+            background-color: #dc3545;
+        }
+        button.reject:hover {
+            background-color: #c82333;
+        }
+        #deposits-list {
+            margin-top: 20px;
+        }
+        .deposit-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            background: white;
+        }
+        .proof-image {
+            max-width: 300px;
+            max-height: 300px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #loading {
+            text-align: center;
+            padding: 20px;
+        }
+        #auth-message, #admin-message {
+            color: #dc3545;
+            margin: 10px 0;
+        }
+        .status-pending {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .status-approved {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .status-rejected {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
     <!-- Login Section -->
@@ -18,7 +98,10 @@
 
     <!-- Admin Dashboard -->
     <div id="admin-section" style="display:none">
-        <h1>Deposit Management <button onclick="handleLogout()">Logout</button></h1>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>Deposit Verification</h1>
+            <button onclick="handleLogout()">Logout</button>
+        </div>
         <div id="admin-message"></div>
         <div id="loading">Loading deposits...</div>
         <div id="deposits-list"></div>
@@ -41,6 +124,7 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const auth = firebase.auth();
+        const storage = firebase.storage();
 
         // DOM Elements
         const authSection = document.getElementById('auth-section');
@@ -88,6 +172,8 @@
                     adminSection.style.display = 'none';
                     authSection.style.display = 'block';
                     depositsList.innerHTML = '';
+                    loginEmail.value = '';
+                    loginPassword.value = '';
                 });
         }
 
@@ -96,27 +182,74 @@
             loadingElement.style.display = 'block';
             depositsList.innerHTML = '';
 
-            database.ref('deposits').on('value', (snapshot) => {
+            database.ref('deposits').orderByChild('timestamp').on('value', (snapshot) => {
                 loadingElement.style.display = 'none';
                 const deposits = snapshot.val();
 
                 if (!deposits) {
-                    depositsList.innerHTML = 'No deposits found';
+                    depositsList.innerHTML = '<div class="deposit-card">No deposits found</div>';
                     return;
                 }
 
                 depositsList.innerHTML = '';
-                Object.entries(deposits).forEach(([depositId, deposit]) => {
+                
+                // Convert to array and reverse to show newest first
+                const depositsArray = Object.entries(deposits).reverse();
+                
+                depositsArray.forEach(([depositId, deposit]) => {
                     const div = document.createElement('div');
+                    div.className = 'deposit-card';
+                    
+                    const statusClass = `status-${deposit.status || 'pending'}`;
+                    const date = deposit.timestamp ? new Date(deposit.timestamp).toLocaleString() : 'N/A';
+                    
                     div.innerHTML = `
-                        <h3>Deposit ${depositId}</h3>
-                        <p>User: ${deposit.userId || 'N/A'}</p>
-                        <p>Amount: ${deposit.amount || '0'}</p>
-                        <p>Status: ${deposit.status || 'pending'}</p>
-                        <button onclick="approveDeposit('${depositId}')">Approve</button>
-                        <button onclick="rejectDeposit('${depositId}')">Reject</button>
-                        <hr>
+                        <h3>Deposit ID: ${depositId}</h3>
+                        <p><strong>User ID:</strong> ${deposit.userId || 'N/A'}</p>
+                        <p><strong>Amount:</strong> $${deposit.amount || '0'}</p>
+                        <p><strong>Status:</strong> <span class="${statusClass}">${deposit.status || 'pending'}</span></p>
+                        <p><strong>Date:</strong> ${date}</p>
+                        <p><strong>Payment Method:</strong> ${deposit.paymentMethod || 'N/A'}</p>
+                        ${deposit.note ? `<p><strong>Note:</strong> ${deposit.note}</p>` : ''}
                     `;
+                    
+                    // Add proof image if available
+                    if (deposit.proofImage) {
+                        const imgContainer = document.createElement('div');
+                        imgContainer.innerHTML = '<p><strong>Proof Image:</strong></p>';
+                        const img = document.createElement('img');
+                        img.className = 'proof-image';
+                        img.alt = 'Deposit proof';
+                        
+                        // Get the download URL from Firebase Storage
+                        storage.ref(deposit.proofImage).getDownloadURL()
+                            .then((url) => {
+                                img.src = url;
+                                img.onclick = () => window.open(url, '_blank');
+                                img.style.cursor = 'pointer';
+                            })
+                            .catch((error) => {
+                                img.src = 'https://via.placeholder.com/300x150?text=Image+not+found';
+                                console.error('Error loading image:', error);
+                            });
+                        
+                        imgContainer.appendChild(img);
+                        div.appendChild(imgContainer);
+                    }
+                    
+                    // Add action buttons for pending deposits
+                    if (!deposit.status || deposit.status === 'pending') {
+                        const actionsDiv = document.createElement('div');
+                        actionsDiv.style.marginTop = '10px';
+                        actionsDiv.innerHTML = `
+                            <button onclick="approveDeposit('${depositId}')">Approve</button>
+                            <button class="reject" onclick="rejectDeposit('${depositId}')">Reject</button>
+                        `;
+                        div.appendChild(actionsDiv);
+                    } else {
+                        div.innerHTML += `<p><strong>Processed At:</strong> ${new Date(deposit.processedAt).toLocaleString()}</p>`;
+                    }
+                    
                     depositsList.appendChild(div);
                 });
             }, (error) => {
@@ -127,20 +260,40 @@
 
         // Approve Deposit
         function approveDeposit(depositId) {
-            if (confirm('Approve this deposit?')) {
+            if (confirm('Are you sure you want to APPROVE this deposit?')) {
                 database.ref(`deposits/${depositId}`).update({
                     status: 'approved',
                     processedAt: Date.now()
+                })
+                .then(() => {
+                    adminMessage.textContent = 'Deposit approved successfully!';
+                    adminMessage.style.color = '#28a745';
+                    setTimeout(() => adminMessage.textContent = '', 3000);
+                })
+                .catch((error) => {
+                    adminMessage.textContent = 'Error approving deposit: ' + error.message;
+                    adminMessage.style.color = '#dc3545';
                 });
             }
         }
 
         // Reject Deposit
         function rejectDeposit(depositId) {
-            if (confirm('Reject this deposit?')) {
+            const reason = prompt('Please enter the reason for rejection:');
+            if (reason !== null) {
                 database.ref(`deposits/${depositId}`).update({
                     status: 'rejected',
-                    processedAt: Date.now()
+                    processedAt: Date.now(),
+                    rejectionReason: reason || 'No reason provided'
+                })
+                .then(() => {
+                    adminMessage.textContent = 'Deposit rejected successfully!';
+                    adminMessage.style.color = '#28a745';
+                    setTimeout(() => adminMessage.textContent = '', 3000);
+                })
+                .catch((error) => {
+                    adminMessage.textContent = 'Error rejecting deposit: ' + error.message;
+                    adminMessage.style.color = '#dc3545';
                 });
             }
         }
@@ -153,6 +306,8 @@
                         authSection.style.display = 'none';
                         adminSection.style.display = 'block';
                         loadDeposits();
+                    } else {
+                        auth.signOut();
                     }
                 });
             }
