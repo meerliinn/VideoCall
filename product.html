@@ -174,6 +174,53 @@
             color: #6c757d;
             font-style: italic;
         }
+        .buy-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .buy-with-deposit {
+            background-color: #28a745;
+        }
+        .buy-with-deposit:hover {
+            background-color: #218838;
+        }
+        .buy-with-new-deposit {
+            background-color: #17a2b8;
+        }
+        .buy-with-new-deposit:hover {
+            background-color: #138496;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -204,9 +251,14 @@
                         <i class="fas fa-coins"></i> Earnings credited daily
                     </div>
                 </div>
-                <button class="buy-btn" onclick="buyProduct('Level 1', 30, 4, 120)">
-                    Buy Now
-                </button>
+                <div class="buy-options">
+                    <button class="buy-btn buy-with-deposit" onclick="buyProduct('Level 1', 30, 4, 120, false, 'deposit')">
+                        Buy with Balance
+                    </button>
+                    <button class="buy-btn buy-with-new-deposit" onclick="buyProduct('Level 1', 30, 4, 120, false, 'new')">
+                        Buy with New Deposit
+                    </button>
+                </div>
             </div>
             
             <div class="product-card basic">
@@ -225,9 +277,14 @@
                         <i class="fas fa-coins"></i> Earnings credited daily
                     </div>
                 </div>
-                <button class="buy-btn" onclick="buyProduct('Level 2', 50, 4, 120)">
-                    Buy Now
-                </button>
+                <div class="buy-options">
+                    <button class="buy-btn buy-with-deposit" onclick="buyProduct('Level 2', 50, 4, 120, false, 'deposit')">
+                        Buy with Balance
+                    </button>
+                    <button class="buy-btn buy-with-new-deposit" onclick="buyProduct('Level 2', 50, 4, 120, false, 'new')">
+                        Buy with New Deposit
+                    </button>
+                </div>
             </div>
             
             <div class="product-card basic">
@@ -246,9 +303,14 @@
                         <i class="fas fa-coins"></i> Earnings credited daily
                     </div>
                 </div>
-                <button class="buy-btn" onclick="buyProduct('Level 3', 100, 4, 120)">
-                    Buy Now
-                </button>
+                <div class="buy-options">
+                    <button class="buy-btn buy-with-deposit" onclick="buyProduct('Level 3', 100, 4, 120, false, 'deposit')">
+                        Buy with Balance
+                    </button>
+                    <button class="buy-btn buy-with-new-deposit" onclick="buyProduct('Level 3', 100, 4, 120, false, 'new')">
+                        Buy with New Deposit
+                    </button>
+                </div>
             </div>
             
             <div class="product-card vip">
@@ -268,9 +330,14 @@
                         <i class="fas fa-coins"></i> Earnings credited daily
                     </div>
                 </div>
-                <button class="buy-btn" onclick="buyProduct('VIP 1', 300, 15, 130, true)">
-                    Buy Now
-                </button>
+                <div class="buy-options">
+                    <button class="buy-btn buy-with-deposit" onclick="buyProduct('VIP 1', 300, 15, 130, true, 'deposit')">
+                        Buy with Balance
+                    </button>
+                    <button class="buy-btn buy-with-new-deposit" onclick="buyProduct('VIP 1', 300, 15, 130, true, 'new')">
+                        Buy with New Deposit
+                    </button>
+                </div>
             </div>
             
             <div class="product-card vip">
@@ -290,9 +357,14 @@
                         <i class="fas fa-coins"></i> Earnings credited daily
                     </div>
                 </div>
-                <button class="buy-btn" onclick="buyProduct('VIP 2', 500, 25, 130, true)">
-                    Buy Now
-                </button>
+                <div class="buy-options">
+                    <button class="buy-btn buy-with-deposit" onclick="buyProduct('VIP 2', 500, 25, 130, true, 'deposit')">
+                        Buy with Balance
+                    </button>
+                    <button class="buy-btn buy-with-new-deposit" onclick="buyProduct('VIP 2', 500, 25, 130, true, 'new')">
+                        Buy with New Deposit
+                    </button>
+                </div>
             </div>
             
             <div class="product-card vip">
@@ -312,9 +384,14 @@
                         <i class="fas fa-coins"></i> Earnings credited daily
                     </div>
                 </div>
-                <button class="buy-btn" onclick="buyProduct('VIP 3', 1000, 50, 130, true)">
-                    Buy Now
-                </button>
+                <div class="buy-options">
+                    <button class="buy-btn buy-with-deposit" onclick="buyProduct('VIP 3', 1000, 50, 130, true, 'deposit')">
+                        Buy with Balance
+                    </button>
+                    <button class="buy-btn buy-with-new-deposit" onclick="buyProduct('VIP 3', 1000, 50, 130, true, 'new')">
+                        Buy with New Deposit
+                    </button>
+                </div>
             </div>
         </div>
         
@@ -345,6 +422,19 @@
         </button>
     </div>
 
+    <!-- Deposit Modal -->
+    <div id="depositModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Complete Your Purchase</h2>
+            <p>You need to deposit <span id="required-amount">0</span> USDT to purchase this product.</p>
+            <p>Please make a deposit and then return to complete your purchase.</p>
+            <button class="buy-btn" onclick="window.location.href='deposit.html'">
+                Go to Deposit Page
+            </button>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -352,16 +442,14 @@
     <script>
         // Firebase Configuration
         const firebaseConfig = {
-  apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
-  authDomain: "newporoject-c6f66.firebaseapp.com",
-  databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
-  projectId: "newporoject-c6f66",
-  storageBucket: "newporoject-c6f66.appspot.com",
-  messagingSenderId: "733557611631",
-  appId: "1:733557611631:web:02c9377f56d614ff3b019a",
-  measurementId: "G-53BEVW33FP"
-};
-
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
@@ -371,6 +459,8 @@
         // DOM elements
         const depositBalanceEl = document.getElementById('deposit-balance');
         const activeProductsList = document.getElementById('active-products-list');
+        const depositModal = document.getElementById('depositModal');
+        const requiredAmountEl = document.getElementById('required-amount');
 
         // Check authentication state
         auth.onAuthStateChanged((user) => {
@@ -413,7 +503,7 @@
                         const purchaseDate = investment.purchaseDate.toDate();
                         const formattedDate = purchaseDate.toLocaleDateString();
                         
-                        const daysLeft = investment.duration - Math.floor((Date.now() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24);
+                        const daysLeft = investment.duration - Math.floor((Date.now() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
                         
                         const productItem = document.createElement('div');
                         productItem.className = 'active-product-item';
@@ -421,7 +511,7 @@
                             <div class="product-name">${investment.productName}</div>
                             <div class="product-details">
                                 <div>Invested: ${investment.amount} USDT</div>
-                                <div>Days left: ${Math.max(0, Math.floor(daysLeft))}</div>
+                                <div>Days left: ${Math.max(0, daysLeft)}</div>
                             </div>
                             <div class="product-details">
                                 <div>Daily earnings: ${investment.dailyEarnings} ${investment.isFixed ? 'USDT' : '%'}</div>
@@ -434,7 +524,7 @@
         }
 
         // Buy product function
-        async function buyProduct(productName, price, dailyEarnings, duration, isFixed = false) {
+        async function buyProduct(productName, price, dailyEarnings, duration, isFixed = false, paymentMethod) {
             const user = auth.currentUser;
             if (!user) {
                 window.location.href = 'sign.html';
@@ -447,26 +537,29 @@
             }
             
             try {
-                // Check user's deposit balance
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists) {
-                    alert('User data not found');
-                    return;
+                // Check user's deposit balance if using existing balance
+                if (paymentMethod === 'deposit') {
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    if (!userDoc.exists) {
+                        alert('User data not found');
+                        return;
+                    }
+                    
+                    const userData = userDoc.data();
+                    const depositBalance = userData.depositBalance || 0;
+                    
+                    if (depositBalance < price) {
+                        // Show modal to inform user they need to deposit
+                        requiredAmountEl.textContent = price;
+                        depositModal.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Deduct from deposit balance
+                    await db.collection('users').doc(user.uid).update({
+                        depositBalance: firebase.firestore.FieldValue.increment(-price)
+                    });
                 }
-                
-                const userData = userDoc.data();
-                const depositBalance = userData.depositBalance || 0;
-                
-                if (depositBalance < price) {
-                    alert('Insufficient deposit balance. Please deposit first.');
-                    window.location.href = 'deposit.html';
-                    return;
-                }
-                
-                // Deduct from deposit balance
-                await db.collection('users').doc(user.uid).update({
-                    depositBalance: firebase.firestore.FieldValue.increment(-price)
-                });
                 
                 // Create investment record
                 await db.collection('investments').add({
@@ -491,6 +584,18 @@
             } catch (error) {
                 console.error('Error purchasing product:', error);
                 alert('Error purchasing product. Please try again.');
+            }
+        }
+
+        // Close modal
+        function closeModal() {
+            depositModal.style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target == depositModal) {
+                closeModal();
             }
         }
     </script>
