@@ -15,26 +15,15 @@
         .status-pending { color: #FF9800 }
         .status-approved { color: #4CAF50 }
         .status-rejected { color: #f44336 }
-        .login-form { max-width: 400px; margin: 50px auto; padding: 20px; background: white; border-radius: 5px }
-        .login-form input { width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box }
-        .login-btn { width: 100%; padding: 10px; background: #4CAF50; color: white; border: none }
     </style>
 </head>
 <body>
-    <div id="admin-panel" style="display:none">
+    <div id="admin-panel">
         <h1>Deposit Approvals</h1>
         <div id="deposits"></div>
     </div>
 
-    <div id="login-panel" class="login-form">
-        <h2>Admin Login</h2>
-        <input type="email" id="admin-email" placeholder="Admin Email">
-        <input type="password" id="admin-password" placeholder="Password">
-        <button class="login-btn" onclick="adminLogin()">Login</button>
-    </div>
-
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
@@ -52,41 +41,11 @@
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
         const rdb = firebase.database();
         const db = firebase.firestore();
 
-        // Check admin authentication
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                // Verify user is admin
-                db.collection('admins').doc(user.uid).get()
-                    .then(doc => {
-                        if (doc.exists) {
-                            document.getElementById('login-panel').style.display = 'none';
-                            document.getElementById('admin-panel').style.display = 'block';
-                            loadDeposits();
-                        } else {
-                            auth.signOut();
-                            alert('Access denied - not an admin');
-                        }
-                    });
-            } else {
-                document.getElementById('login-panel').style.display = 'block';
-                document.getElementById('admin-panel').style.display = 'none';
-            }
-        });
-
-        // Admin login function
-        function adminLogin() {
-            const email = document.getElementById('admin-email').value;
-            const password = document.getElementById('admin-password').value;
-            
-            auth.signInWithEmailAndPassword(email, password)
-                .catch(error => {
-                    alert('Login failed: ' + error.message);
-                });
-        }
+        // Load deposits immediately
+        loadDeposits();
 
         // Load deposits
         function loadDeposits() {
