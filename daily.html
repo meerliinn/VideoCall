@@ -241,20 +241,22 @@
                     
                     querySnapshot.forEach((doc) => {
                         const investment = doc.data();
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
+                        const now = new Date();
                         
-                        // Check if earnings were already claimed today
+                        // Check if earnings were already claimed within last 24 hours
                         const lastClaimDate = investment.lastPayoutDate ? investment.lastPayoutDate.toDate() : null;
-                        const alreadyClaimed = lastClaimDate && lastClaimDate >= today;
-                        
-                        // Calculate next claim time
+                        let alreadyClaimed = false;
                         let nextClaimTime = 'Available now';
-                        if (alreadyClaimed) {
-                            const nextClaimDate = new Date(lastClaimDate);
-                            nextClaimDate.setDate(nextClaimDate.getDate() + 1);
-                            nextClaimDate.setHours(0, 0, 0, 0);
-                            nextClaimTime = `Next claim: ${nextClaimDate.toLocaleString()}`;
+                        
+                        if (lastClaimDate) {
+                            // Calculate time difference in hours
+                            const hoursSinceLastClaim = (now - lastClaimDate) / (1000 * 60 * 60);
+                            alreadyClaimed = hoursSinceLastClaim < 24;
+                            
+                            if (alreadyClaimed) {
+                                const nextAvailable = new Date(lastClaimDate.getTime() + (24 * 60 * 60 * 1000));
+                                nextClaimTime = `Next claim: ${nextAvailable.toLocaleString()}`;
+                            }
                         }
                         
                         // Calculate daily earnings
@@ -278,13 +280,15 @@
                             </div>
                             <button class="claim-btn" onclick="claimDailyEarnings('${doc.id}', ${dailyEarnings})" 
                                 ${alreadyClaimed ? 'disabled' : ''}>
-                                ${alreadyClaimed ? 'Already Claimed Today' : 'Claim Earnings'}
+                                ${alreadyClaimed ? 'Already Claimed' : 'Claim Earnings'}
                             </button>
-                            <div class="task-status ${alreadyClaimed ? 'task-completed' : 'task-pending'}">
-                                ${alreadyClaimed ? 
-                                    `Last claimed: ${lastClaimDate.toLocaleString()}<br>${nextClaimTime}` : 
-                                    nextClaimTime}
-                            </div>
+                            ${lastClaimDate ? 
+                                `<div class="task-status ${alreadyClaimed ? 'task-completed' : 'task-pending'}">
+                                    ${alreadyClaimed ? 
+                                        `Last claimed: ${lastClaimDate.toLocaleString()}<br>${nextClaimTime}` : 
+                                        `Last claimed: ${lastClaimDate.toLocaleString()}`}
+                                </div>` : 
+                                ''}
                         `;
                         tasksList.appendChild(taskItem);
                     });
@@ -311,14 +315,15 @@
                     }
                     
                     const investment = investmentDoc.data();
+                    const now = new Date();
                     
-                    // Check if already claimed today
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const lastClaimDate = investment.lastPayoutDate ? investment.lastPayoutDate.toDate() : null;
-                    
-                    if (lastClaimDate && lastClaimDate >= today) {
-                        throw new Error("You've already claimed earnings for today");
+                    // Check if claimed within last 24 hours (only if not first claim)
+                    if (investment.lastPayoutDate) {
+                        const lastClaimDate = investment.lastPayoutDate.toDate();
+                        const hoursSinceLastClaim = (now - lastClaimDate) / (1000 * 60 * 60);
+                        if (hoursSinceLastClaim < 24) {
+                            throw new Error("You can only claim once every 24 hours");
+                        }
                     }
                     
                     // Update investment record
