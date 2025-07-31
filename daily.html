@@ -136,6 +136,9 @@
         .task-completed {
             color: #28a745;
         }
+        .task-pending {
+            color: #ffc107;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -245,6 +248,15 @@
                         const lastClaimDate = investment.lastPayoutDate ? investment.lastPayoutDate.toDate() : null;
                         const alreadyClaimed = lastClaimDate && lastClaimDate >= today;
                         
+                        // Calculate next claim time
+                        let nextClaimTime = 'Available now';
+                        if (alreadyClaimed) {
+                            const nextClaimDate = new Date(lastClaimDate);
+                            nextClaimDate.setDate(nextClaimDate.getDate() + 1);
+                            nextClaimDate.setHours(0, 0, 0, 0);
+                            nextClaimTime = `Next claim: ${nextClaimDate.toLocaleString()}`;
+                        }
+                        
                         // Calculate daily earnings
                         let dailyEarnings = 0;
                         if (investment.isFixed) {
@@ -262,21 +274,24 @@
                             </div>
                             <div class="task-description">
                                 Claim your daily earnings from this investment package.
+                                ${investment.totalEarned ? `<br>Total earned: ${investment.totalEarned.toFixed(2)} USDT` : ''}
                             </div>
                             <button class="claim-btn" onclick="claimDailyEarnings('${doc.id}', ${dailyEarnings})" 
                                 ${alreadyClaimed ? 'disabled' : ''}>
                                 ${alreadyClaimed ? 'Already Claimed Today' : 'Claim Earnings'}
                             </button>
-                            ${alreadyClaimed ? 
-                                `<div class="task-status task-completed">Last claimed: ${lastClaimDate.toLocaleString()}</div>` : 
-                                ''}
+                            <div class="task-status ${alreadyClaimed ? 'task-completed' : 'task-pending'}">
+                                ${alreadyClaimed ? 
+                                    `Last claimed: ${lastClaimDate.toLocaleString()}<br>${nextClaimTime}` : 
+                                    nextClaimTime}
+                            </div>
                         `;
                         tasksList.appendChild(taskItem);
                     });
                 });
         }
 
-        // Claim daily earnings
+        // Claim daily earnings with transaction
         async function claimDailyEarnings(investmentId, amount) {
             const user = auth.currentUser;
             if (!user) {
@@ -284,16 +299,38 @@
                 return;
             }
             
+            const investmentRef = db.collection('investments').doc(investmentId);
+            const userRef = db.collection('users').doc(user.uid);
+            
             try {
-                // Update investment record with last claim date
-                await db.collection('investments').doc(investmentId).update({
-                    lastPayoutDate: firebase.firestore.FieldValue.serverTimestamp(),
-                    totalEarned: firebase.firestore.FieldValue.increment(amount)
-                });
-                
-                // Update user's earnings balance
-                await db.collection('users').doc(user.uid).update({
-                    taskEarnings: firebase.firestore.FieldValue.increment(amount)
+                await db.runTransaction(async (transaction) => {
+                    // Get current investment data
+                    const investmentDoc = await transaction.get(investmentRef);
+                    if (!investmentDoc.exists) {
+                        throw new Error("Investment not found");
+                    }
+                    
+                    const investment = investmentDoc.data();
+                    
+                    // Check if already claimed today
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const lastClaimDate = investment.lastPayoutDate ? investment.lastPayoutDate.toDate() : null;
+                    
+                    if (lastClaimDate && lastClaimDate >= today) {
+                        throw new Error("You've already claimed earnings for today");
+                    }
+                    
+                    // Update investment record
+                    transaction.update(investmentRef, {
+                        lastPayoutDate: firebase.firestore.FieldValue.serverTimestamp(),
+                        totalEarned: firebase.firestore.FieldValue.increment(amount)
+                    });
+                    
+                    // Update user balance
+                    transaction.update(userRef, {
+                        taskEarnings: firebase.firestore.FieldValue.increment(amount)
+                    });
                 });
                 
                 alert(`Successfully claimed ${amount.toFixed(2)} USDT!`);
@@ -304,7 +341,7 @@
                 
             } catch (error) {
                 console.error('Error claiming earnings:', error);
-                alert('Error claiming earnings. Please try again.');
+                alert(error.message || 'Error claiming earnings. Please try again.');
             }
         }
     </script>
