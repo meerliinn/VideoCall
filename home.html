@@ -183,11 +183,6 @@
         </button>
     </div>
 
-    <div class="balance-card">
-    <div>Your Deposit Balance</div>
-    <div class="balance-amount" id="deposit-balance">0</div>
-    <div>USDT</div>
-</div>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -195,26 +190,15 @@
     <script>
         // Firebase Configuration
         const firebaseConfig = {
-  apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
-  authDomain: "newporoject-c6f66.firebaseapp.com",
-  databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
-  projectId: "newporoject-c6f66",
-  storageBucket: "newporoject-c6f66.appspot.com",
-  messagingSenderId: "733557611631",
-  appId: "1:733557611631:web:02c9377f56d614ff3b019a",
-  measurementId: "G-53BEVW33FP"
-};
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
 
-function loadUserData(userId) {
-        db.collection('users').doc(userId).get()
-            .then((doc) => {
-                if (doc.exists) {
-                    const userData = doc.data();
-                    // Update points balance
-                    document.getElementById('points-balance').textContent = userData.points || 0;
-                    // Update deposit balance
-                    document.getElementById('deposit-balance').textContent = 
-                        userData.depositBalance ? userData.depositBalance.toFixed(2) : '0.00';
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
