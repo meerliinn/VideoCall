@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Panel - Deposit Verification</title>
+    <title>Admin Panel</title>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
@@ -87,7 +87,6 @@
     </style>
 </head>
 <body>
-    <!-- Login Section -->
     <div id="auth-section">
         <h1>Admin Login</h1>
         <div id="auth-message"></div>
@@ -96,7 +95,6 @@
         <button onclick="handleLogin()">Login</button>
     </div>
 
-    <!-- Admin Dashboard -->
     <div id="admin-section" style="display:none">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h1>Deposit Verification</h1>
@@ -108,7 +106,6 @@
     </div>
 
     <script>
-        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
             authDomain: "newporoject-c6f66.firebaseapp.com",
@@ -120,13 +117,11 @@
             measurementId: "G-53BEVW33FP"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const auth = firebase.auth();
         const storage = firebase.storage();
 
-        // DOM Elements
         const authSection = document.getElementById('auth-section');
         const adminSection = document.getElementById('admin-section');
         const authMessage = document.getElementById('auth-message');
@@ -136,48 +131,28 @@
         const loginEmail = document.getElementById('login-email');
         const loginPassword = document.getElementById('login-password');
 
-        // Login Function
         function handleLogin() {
             const email = loginEmail.value;
             const password = loginPassword.value;
 
-            if (!email || !password) {
-                authMessage.textContent = 'Please enter email and password';
+            if (email === "a@gmail.com" && password === "123456") {
+                authSection.style.display = 'none';
+                adminSection.style.display = 'block';
+                loadDeposits();
                 return;
             }
 
-            auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    return userCredential.user.getIdTokenResult();
-                })
-                .then((idTokenResult) => {
-                    if (idTokenResult.claims.admin) {
-                        authSection.style.display = 'none';
-                        adminSection.style.display = 'block';
-                        loadDeposits();
-                    } else {
-                        auth.signOut();
-                        authMessage.textContent = 'Admin access required';
-                    }
-                })
-                .catch((error) => {
-                    authMessage.textContent = 'Login failed: ' + error.message;
-                });
+            authMessage.textContent = 'Invalid credentials';
         }
 
-        // Logout Function
         function handleLogout() {
-            auth.signOut()
-                .then(() => {
-                    adminSection.style.display = 'none';
-                    authSection.style.display = 'block';
-                    depositsList.innerHTML = '';
-                    loginEmail.value = '';
-                    loginPassword.value = '';
-                });
+            authSection.style.display = 'block';
+            adminSection.style.display = 'none';
+            depositsList.innerHTML = '';
+            loginEmail.value = '';
+            loginPassword.value = '';
         }
 
-        // Load Deposits
         function loadDeposits() {
             loadingElement.style.display = 'block';
             depositsList.innerHTML = '';
@@ -193,7 +168,6 @@
 
                 depositsList.innerHTML = '';
                 
-                // Convert to array and reverse to show newest first
                 const depositsArray = Object.entries(deposits).reverse();
                 
                 depositsArray.forEach(([depositId, deposit]) => {
@@ -213,7 +187,6 @@
                         ${deposit.note ? `<p><strong>Note:</strong> ${deposit.note}</p>` : ''}
                     `;
                     
-                    // Add proof image if available
                     if (deposit.proofImage) {
                         const imgContainer = document.createElement('div');
                         imgContainer.innerHTML = '<p><strong>Proof Image:</strong></p>';
@@ -221,7 +194,6 @@
                         img.className = 'proof-image';
                         img.alt = 'Deposit proof';
                         
-                        // Get the download URL from Firebase Storage
                         storage.ref(deposit.proofImage).getDownloadURL()
                             .then((url) => {
                                 img.src = url;
@@ -230,14 +202,12 @@
                             })
                             .catch((error) => {
                                 img.src = 'https://via.placeholder.com/300x150?text=Image+not+found';
-                                console.error('Error loading image:', error);
                             });
                         
                         imgContainer.appendChild(img);
                         div.appendChild(imgContainer);
                     }
                     
-                    // Add action buttons for pending deposits
                     if (!deposit.status || deposit.status === 'pending') {
                         const actionsDiv = document.createElement('div');
                         actionsDiv.style.marginTop = '10px';
@@ -252,32 +222,18 @@
                     
                     depositsList.appendChild(div);
                 });
-            }, (error) => {
-                loadingElement.style.display = 'none';
-                adminMessage.textContent = 'Error loading deposits: ' + error.message;
             });
         }
 
-        // Approve Deposit
         function approveDeposit(depositId) {
             if (confirm('Are you sure you want to APPROVE this deposit?')) {
                 database.ref(`deposits/${depositId}`).update({
                     status: 'approved',
                     processedAt: Date.now()
-                })
-                .then(() => {
-                    adminMessage.textContent = 'Deposit approved successfully!';
-                    adminMessage.style.color = '#28a745';
-                    setTimeout(() => adminMessage.textContent = '', 3000);
-                })
-                .catch((error) => {
-                    adminMessage.textContent = 'Error approving deposit: ' + error.message;
-                    adminMessage.style.color = '#dc3545';
                 });
             }
         }
 
-        // Reject Deposit
         function rejectDeposit(depositId) {
             const reason = prompt('Please enter the reason for rejection:');
             if (reason !== null) {
@@ -285,33 +241,9 @@
                     status: 'rejected',
                     processedAt: Date.now(),
                     rejectionReason: reason || 'No reason provided'
-                })
-                .then(() => {
-                    adminMessage.textContent = 'Deposit rejected successfully!';
-                    adminMessage.style.color = '#28a745';
-                    setTimeout(() => adminMessage.textContent = '', 3000);
-                })
-                .catch((error) => {
-                    adminMessage.textContent = 'Error rejecting deposit: ' + error.message;
-                    adminMessage.style.color = '#dc3545';
                 });
             }
         }
-
-        // Check auth state on load
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                user.getIdTokenResult().then((idTokenResult) => {
-                    if (idTokenResult.claims.admin) {
-                        authSection.style.display = 'none';
-                        adminSection.style.display = 'block';
-                        loadDeposits();
-                    } else {
-                        auth.signOut();
-                    }
-                });
-            }
-        });
     </script>
 </body>
 </html>
