@@ -82,21 +82,10 @@
         #referral-code-input {
             width: calc(100% - 20px);
         }
-        .logo {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .logo img {
-            max-width: 150px;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="logo">
-            <img src="logo.png" alt="VideoCall">
-        </div>
-
         <div class="tab-container">
             <button class="tab active" onclick="openTab('signup')">Sign Up</button>
             <button class="tab" onclick="openTab('login')">Login</button>
@@ -130,18 +119,16 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // Firebase Configuration
+        // Firebase Configuration (using home.html config)
         const firebaseConfig = {
-  apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
-  authDomain: "newporoject-c6f66.firebaseapp.com",
-  databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
-  projectId: "newporoject-c6f66",
-  storageBucket: "newporoject-c6f66.appspot.com",
-  messagingSenderId: "733557611631",
-  appId: "1:733557611631:web:02c9377f56d614ff3b019a",
-  measurementId: "G-53BEVW33FP"
-};
-
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
 
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
@@ -192,17 +179,24 @@
                 // Generate referral code for new user
                 const userRefCode = generateReferralCode();
                 
-                // Save user data with initial balances
-                await db.collection('users').doc(user.uid).set({
+                // Prepare user data
+                const userData = {
                     email: email,
                     referralCode: userRefCode,
-                    referredBy: referralCode || null,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     points: 0,
+                    invitedUsers: [],
                     depositBalance: 0,
-                    taskEarnings: 0,
-                    invitedUsers: []
-                });
+                    taskEarnings: 0
+                };
+
+                // Add referredBy only if referral code exists
+                if (referralCode) {
+                    userData.referredBy = referralCode;
+                }
+
+                // Save user data
+                await db.collection('users').doc(user.uid).set(userData);
 
                 // If signed up with referral code, update referrer's points
                 if (referralCode) {
@@ -230,7 +224,6 @@
                 if (!querySnapshot.empty) {
                     const referrerDoc = querySnapshot.docs[0];
                     const referrerId = referrerDoc.id;
-                    const referrerData = referrerDoc.data();
                     
                     // Create invited user data
                     const invitedUser = {
@@ -240,10 +233,18 @@
                         pointsEarned: 10
                     };
                     
-                    // Update referrer's document
-                    await db.collection('users').doc(referrerId).update({
-                        points: firebase.firestore.FieldValue.increment(10),
-                        invitedUsers: firebase.firestore.FieldValue.arrayUnion(invitedUser)
+                    // Update referrer's document in a transaction
+                    await db.runTransaction(async (transaction) => {
+                        const doc = await transaction.get(db.collection('users').doc(referrerId));
+                        if (doc.exists) {
+                            const currentPoints = doc.data().points || 0;
+                            const currentInvitedUsers = doc.data().invitedUsers || [];
+                            
+                            transaction.update(db.collection('users').doc(referrerId), {
+                                points: currentPoints + 10,
+                                invitedUsers: [...currentInvitedUsers, invitedUser]
+                            });
+                        }
                     });
                     
                     console.log("Referrer points updated successfully");
