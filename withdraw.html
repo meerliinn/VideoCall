@@ -185,24 +185,7 @@
         <div class="history-section">
             <h3>Withdrawal History</h3>
             <div id="withdraw-history">
-                <div class="history-item">
-                    <div>
-                        <div class="history-amount">-30.00 USDT</div>
-                        <div class="history-date">2023-06-12 11:45:33</div>
-                    </div>
-                    <div>
-                        <span class="history-status status-completed">Completed</span>
-                    </div>
-                </div>
-                <div class="history-item">
-                    <div>
-                        <div class="history-amount">-50.00 USDT</div>
-                        <div class="history-date">2023-06-05 16:20:18</div>
-                    </div>
-                    <div>
-                        <span class="history-status status-rejected">Rejected</span>
-                    </div>
-                </div>
+                <div style="text-align: center; padding: 20px; color: #6c757d;">Loading...</div>
             </div>
         </div>
         
@@ -229,25 +212,25 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <script>
         // Firebase Configuration
         const firebaseConfig = {
-  apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
-  authDomain: "newporoject-c6f66.firebaseapp.com",
-  databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
-  projectId: "newporoject-c6f66",
-  storageBucket: "newporoject-c6f66.appspot.com",
-  messagingSenderId: "733557611631",
-  appId: "1:733557611631:web:02c9377f56d614ff3b019a",
-  measurementId: "G-53BEVW33FP"
-};
-
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        const rdb = firebase.database();
 
         // DOM elements
         const withdrawBalanceEl = document.getElementById('withdraw-balance');
@@ -272,8 +255,8 @@
                 .then((doc) => {
                     if (doc.exists) {
                         const userData = doc.data();
-                        // Calculate available balance (task + referral earnings)
-                        const availableBalance = (userData.points || 0) + (userData.taskEarnings || 0);
+                        // Calculate available balance from earnings only
+                        const availableBalance = userData.taskEarnings || 0;
                         withdrawBalanceEl.textContent = availableBalance.toFixed(2);
                         
                         // Disable submit button if balance is less than minimum
@@ -287,30 +270,34 @@
 
         // Load withdrawal history
         function loadWithdrawalHistory(userId) {
-            db.collection('withdrawals')
-                .where('userId', '==', userId)
-                .orderBy('timestamp', 'desc')
-                .get()
-                .then((querySnapshot) => {
+            rdb.ref('withdrawals').orderByChild('userId').equalTo(userId).once('value')
+                .then(snapshot => {
                     withdrawHistoryEl.innerHTML = '';
                     
-                    if (querySnapshot.empty) {
+                    if (!snapshot.exists()) {
                         withdrawHistoryEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #6c757d;">No withdrawal history yet</div>';
                         return;
                     }
                     
-                    querySnapshot.forEach((doc) => {
-                        const withdrawal = doc.data();
-                        const date = withdrawal.timestamp.toDate();
-                        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-                        
-                        const historyItem = document.createElement('div');
-                        historyItem.className = 'history-item';
+                    const withdrawals = [];
+                    snapshot.forEach(child => {
+                        withdrawals.push({
+                            key: child.key,
+                            ...child.val()
+                        });
+                    });
+                    
+                    // Sort by timestamp (newest first)
+                    withdrawals.sort((a, b) => b.timestamp - a.timestamp);
+                    
+                    withdrawals.forEach(withdrawal => {
+                        const date = new Date(withdrawal.timestamp);
+                        const formattedDate = date.toLocaleString();
                         
                         let statusClass = 'status-pending';
                         let statusText = 'Pending';
                         
-                        if (withdrawal.status === 'completed') {
+                        if (withdrawal.status === 'approved') {
                             statusClass = 'status-completed';
                             statusText = 'Completed';
                         } else if (withdrawal.status === 'rejected') {
@@ -318,9 +305,11 @@
                             statusText = 'Rejected';
                         }
                         
+                        const historyItem = document.createElement('div');
+                        historyItem.className = 'history-item';
                         historyItem.innerHTML = `
                             <div>
-                                <div class="history-amount">-${withdrawal.amount.toFixed(2)} USDT</div>
+                                <div class="history-amount">-${parseFloat(withdrawal.amount).toFixed(2)} USDT</div>
                                 <div class="history-date">${formattedDate}</div>
                             </div>
                             <div>
@@ -336,6 +325,7 @@
         async function submitWithdrawal() {
             const amount = parseFloat(withdrawAmountInput.value);
             const walletAddress = walletAddressInput.value.trim();
+            const user = auth.currentUser;
             
             if (!amount || amount < 15) {
                 alert('Minimum withdrawal amount is 15 USDT');
@@ -347,7 +337,6 @@
                 return;
             }
             
-            const user = auth.currentUser;
             if (!user) {
                 window.location.href = 'sign.html';
                 return;
@@ -361,7 +350,7 @@
             }
             
             const userData = userDoc.data();
-            const availableBalance = (userData.points || 0) + (userData.taskEarnings || 0);
+            const availableBalance = userData.taskEarnings || 0;
             
             if (amount > availableBalance) {
                 alert('Insufficient balance for this withdrawal');
@@ -369,16 +358,17 @@
             }
             
             try {
-                // Create withdrawal record
-                await db.collection('withdrawals').add({
+                // Create withdrawal record in Realtime DB for admin approval
+                await rdb.ref('withdrawals').push({
                     userId: user.uid,
+                    userEmail: user.email || 'no-email',
                     amount: amount,
                     walletAddress: walletAddress,
                     status: 'pending',
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    timestamp: Date.now()
                 });
                 
-                alert('Withdrawal request submitted successfully! It will be processed within 24 hours.');
+                alert('Withdrawal request submitted for admin approval!');
                 
                 // Clear form
                 withdrawAmountInput.value = '';
