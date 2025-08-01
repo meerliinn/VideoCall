@@ -220,115 +220,112 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // Firebase Configuration (using home.html config)
-        const firebaseConfig = {
-            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
-            authDomain: "newporoject-c6f66.firebaseapp.com",
-            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
-            projectId: "newporoject-c6f66",
-            storageBucket: "newporoject-c6f66.appspot.com",
-            messagingSenderId: "733557611631",
-            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
-        };
+    // Firebase Configuration (using home.html config)
+    const firebaseConfig = {
+        apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+        authDomain: "newporoject-c6f66.firebaseapp.com",
+        databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+        projectId: "newporoject-c6f66",
+        storageBucket: "newporoject-c6f66.appspot.com",
+        messagingSenderId: "733557611631",
+        appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+    };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-        // DOM elements
-        const referralCodeInput = document.getElementById('referral-code');
-        const referralLinkInput = document.getElementById('referral-link');
-        const totalReferralsEl = document.getElementById('totalReferrals');
-        const totalPointsEl = document.getElementById('totalPoints');
+    // DOM elements
+    const referralCodeInput = document.getElementById('referral-code');
+    const referralLinkInput = document.getElementById('referral-link');
+    const totalReferralsEl = document.getElementById('totalReferrals');
+    const totalPointsEl = document.getElementById('totalPoints');
 
-        // Check authentication state
-        auth.onAuthStateChanged(async (user) => {
-            if (!user) {
-                window.location.href = 'sign.html';
-                return;
-            }
-
-            try {
-                // Get user document
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    // Ensure referral code exists or generate one
-                    let referralCode = userData.referralCode;
-                    if (!referralCode) {
-                        referralCode = generateReferralCode();
-                        await db.collection('users').doc(user.uid).update({
-                            referralCode: referralCode
-                        });
-                    }
-                    
-                    // Update UI with correct path
-                    referralCodeInput.value = referralCode;
-                    referralLinkInput.value = `${window.location.origin}/sign.html?ref=${referralCode}`;
-                    
-                    // Update stats
-                    updateReferralStats(userData);
-                }
-            } catch (error) {
-                console.error("Error:", error);
-                alert("Error loading referral data. Please refresh.");
-            }
-        });
-
-        // Generate referral code
-        function generateReferralCode() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let result = '';
-            for (let i = 0; i < 8; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
+    // Check authentication state
+    auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+            window.location.href = 'sign.html';
+            return;
         }
 
-        // Update referral stats
-        function updateReferralStats(userData) {
-            const referralCount = userData.invitedUsers ? userData.invitedUsers.length : 0;
-            const pointsEarned = userData.points || 0;
+        try {
+            // Get user document
+            const userDoc = await db.collection('users').doc(user.uid).get();
             
-            totalReferralsEl.textContent = referralCount;
-            totalPointsEl.textContent = pointsEarned;
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                // Ensure referral code exists or generate one
+                let referralCode = userData.referralCode;
+                if (!referralCode) {
+                    referralCode = generateReferralCode();
+                    await db.collection('users').doc(user.uid).update({
+                        referralCode: referralCode
+                    });
+                }
+                
+                // Update UI with correct path - FIXED HERE
+                referralCodeInput.value = referralCode;
+                referralLinkInput.value = `https://meerliinn.github.io/VideoCall/sign.html?ref=${referralCode}`;
+                
+                // Update stats
+                updateReferralStats(userData);
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Error loading referral data. Please refresh.");
         }
+    });
 
-        // Copy functions
-        function copyCode() {
-            referralCodeInput.select();
-            document.execCommand('copy');
-            alert('Referral code copied to clipboard!');
+    // Rest of your existing functions remain the same...
+    function generateReferralCode() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let result = '';
+        for (let i = 0; i < 8; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
         }
+        return result;
+    }
 
-        function copyLink() {
-            referralLinkInput.select();
-            document.execCommand('copy');
-            alert('Referral link copied to clipboard!');
-        }
+    function updateReferralStats(userData) {
+        const referralCount = userData.invitedUsers ? userData.invitedUsers.length : 0;
+        const pointsEarned = userData.points || 0;
+        
+        totalReferralsEl.textContent = referralCount;
+        totalPointsEl.textContent = pointsEarned;
+    }
 
-        // Social share functions
-        function shareFacebook() {
-            const link = encodeURIComponent(document.getElementById('referral-link').value);
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${link}`, '_blank');
-        }
+    function copyCode() {
+        referralCodeInput.select();
+        document.execCommand('copy');
+        alert('Referral code copied to clipboard!');
+    }
 
-        function shareTwitter() {
-            const link = encodeURIComponent(document.getElementById('referral-link').value);
-            window.open(`https://twitter.com/intent/tweet?text=Join%20me!&url=${link}`, '_blank');
-        }
+    function copyLink() {
+        referralLinkInput.select();
+        document.execCommand('copy');
+        alert('Referral link copied to clipboard!');
+    }
 
-        function shareWhatsApp() {
-            const link = encodeURIComponent(document.getElementById('referral-link').value);
-            window.open(`https://wa.me/?text=Join%20me%20${link}`, '_blank');
-        }
+    function shareFacebook() {
+        const link = encodeURIComponent(document.getElementById('referral-link').value);
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${link}`, '_blank');
+    }
 
-        function shareTelegram() {
-            const link = encodeURIComponent(document.getElementById('referral-link').value);
-            window.open(`https://t.me/share/url?url=${link}&text=Join%20me`, '_blank');
-        }
-    </script>
+    function shareTwitter() {
+        const link = encodeURIComponent(document.getElementById('referral-link').value);
+        window.open(`https://twitter.com/intent/tweet?text=Join%20me!&url=${link}`, '_blank');
+    }
+
+    function shareWhatsApp() {
+        const link = encodeURIComponent(document.getElementById('referral-link').value);
+        window.open(`https://wa.me/?text=Join%20me%20${link}`, '_blank');
+    }
+
+    function shareTelegram() {
+        const link = encodeURIComponent(document.getElementById('referral-link').value);
+        window.open(`https://t.me/share/url?url=${link}&text=Join%20me`, '_blank');
+    }
+</script>
 </body>
 </html>
