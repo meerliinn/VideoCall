@@ -4,12 +4,15 @@
     <title>Admin Panel</title>
     <style>
         body { font-family: Arial; margin: 20px; background: #f5f5f5 }
-        .deposit { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; background: #fff; border-radius: 5px }
+        .card { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; background: #fff; border-radius: 5px }
         button { padding: 5px 10px; margin-right: 5px; cursor: pointer; border-radius: 3px }
         .approve { background: #4CAF50; color: white; border: none }
         .reject { background: #f44336; color: white; border: none }
+        .primary { background: #2196F3; color: white; border: none }
+        .warning { background: #FF9800; color: white; border: none }
         img { max-width: 300px; display: block; margin-top: 5px; border: 1px solid #eee }
         h1 { color: #333 }
+        h2 { color: #444; margin-top: 30px }
         .user-info { margin-bottom: 5px }
         .timestamp { color: #666; font-size: 12px }
         .status-pending { color: #FF9800 }
@@ -20,17 +23,95 @@
             border-top: 2px solid #ddd; 
             padding-top: 20px 
         }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { 
+            width: 100%; 
+            padding: 8px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            box-sizing: border-box;
+        }
+        .balance-control { 
+            background: #f9f9f9; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin-bottom: 20px;
+        }
+        .tabs { display: flex; margin-bottom: 15px; }
+        .tab { 
+            padding: 10px 15px; 
+            cursor: pointer; 
+            background: #eee; 
+            margin-right: 5px; 
+            border-radius: 5px 5px 0 0;
+        }
+        .tab.active { background: #fff; border: 1px solid #ddd; border-bottom: 1px solid #fff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
     <div id="admin-panel">
-        <h1>Deposit Approvals</h1>
-        <div id="deposits"></div>
+        <h1>Admin Control Panel</h1>
         
-        <div class="section-divider"></div>
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('balance-control')">Balance Control</div>
+            <div class="tab" onclick="switchTab('deposit-approvals')">Deposit Approvals</div>
+            <div class="tab" onclick="switchTab('withdrawal-approvals')">Withdrawal Approvals</div>
+        </div>
         
-        <h1>Withdrawal Approvals</h1>
-        <div id="withdrawals"></div>
+        <div id="balance-control" class="tab-content active">
+            <div class="balance-control">
+                <h2>User Balance Management</h2>
+                <div class="form-group">
+                    <label for="user-id">User ID</label>
+                    <input type="text" id="user-id" placeholder="Enter user ID">
+                </div>
+                <div class="form-group">
+                    <label for="balance-type">Balance Type</label>
+                    <select id="balance-type">
+                        <option value="depositBalance">Deposit Balance</option>
+                        <option value="taskEarnings">Earnings Balance</option>
+                        <option value="points">Points Balance</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="balance-action">Action</label>
+                    <select id="balance-action">
+                        <option value="add">Add Balance</option>
+                        <option value="subtract">Subtract Balance</option>
+                        <option value="set">Set Balance</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="balance-amount">Amount</label>
+                    <input type="number" id="balance-amount" placeholder="Enter amount" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="balance-reason">Reason (Optional)</label>
+                    <input type="text" id="balance-reason" placeholder="Enter reason for adjustment">
+                </div>
+                <button class="primary" onclick="adjustUserBalance()">Apply Balance Adjustment</button>
+            </div>
+            
+            <div id="user-balance-info" style="margin-top: 20px; display: none;">
+                <h3>Current Balances</h3>
+                <div class="user-info"><strong>Deposit Balance:</strong> <span id="current-deposit">0</span> USDT</div>
+                <div class="user-info"><strong>Earnings Balance:</strong> <span id="current-earnings">0</span> USDT</div>
+                <div class="user-info"><strong>Points Balance:</strong> <span id="current-points">0</span> points</div>
+            </div>
+        </div>
+        
+        <div id="deposit-approvals" class="tab-content">
+            <h2>Deposit Approvals</h2>
+            <div id="deposits"></div>
+        </div>
+        
+        <div id="withdrawal-approvals" class="tab-content">
+            <h2>Withdrawal Approvals</h2>
+            <div id="withdrawals"></div>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -59,6 +140,138 @@
         loadDeposits();
         loadWithdrawals();
 
+        // Setup user ID input to fetch balances
+        document.getElementById('user-id').addEventListener('change', function() {
+            const userId = this.value.trim();
+            if (userId) {
+                fetchUserBalances(userId);
+            } else {
+                document.getElementById('user-balance-info').style.display = 'none';
+            }
+        });
+
+        // Tab switching
+        function switchTab(tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Deactivate all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Activate selected tab
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Fetch user balances
+        function fetchUserBalances(userId) {
+            db.collection('users').doc(userId).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        document.getElementById('current-deposit').textContent = 
+                            (userData.depositBalance || 0).toFixed(2);
+                        document.getElementById('current-earnings').textContent = 
+                            (userData.taskEarnings || 0).toFixed(2);
+                        document.getElementById('current-points').textContent = 
+                            userData.points || 0;
+                        document.getElementById('user-balance-info').style.display = 'block';
+                    } else {
+                        alert('User not found');
+                        document.getElementById('user-balance-info').style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching user:', error);
+                    alert('Error fetching user data');
+                });
+        }
+
+        // Adjust user balance
+        async function adjustUserBalance() {
+            const userId = document.getElementById('user-id').value.trim();
+            const balanceType = document.getElementById('balance-type').value;
+            const action = document.getElementById('balance-action').value;
+            const amount = parseFloat(document.getElementById('balance-amount').value);
+            const reason = document.getElementById('balance-reason').value.trim();
+            
+            if (!userId) {
+                alert('Please enter a user ID');
+                return;
+            }
+            
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to ${action} ${amount} to ${balanceType} for user ${userId}?`)) {
+                return;
+            }
+            
+            try {
+                const userRef = db.collection('users').doc(userId);
+                const adjustment = {
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    adminId: firebase.auth().currentUser?.uid || 'system',
+                    action: action,
+                    amount: amount,
+                    balanceType: balanceType,
+                    reason: reason || 'No reason provided'
+                };
+                
+                // First check if user exists
+                const userDoc = await userRef.get();
+                
+                if (!userDoc.exists) {
+                    // Create user if doesn't exist
+                    const newUserData = {
+                        depositBalance: balanceType === 'depositBalance' ? 
+                            (action === 'set' ? amount : amount) : 0,
+                        taskEarnings: balanceType === 'taskEarnings' ? 
+                            (action === 'set' ? amount : amount) : 0,
+                        points: balanceType === 'points' ? 
+                            (action === 'set' ? amount : Math.round(amount)) : 0,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await userRef.set(newUserData);
+                } else {
+                    // Update existing user
+                    let updateData = {};
+                    
+                    if (action === 'add') {
+                        updateData[balanceType] = firebase.firestore.FieldValue.increment(
+                            balanceType === 'points' ? Math.round(amount) : amount
+                        );
+                    } else if (action === 'subtract') {
+                        updateData[balanceType] = firebase.firestore.FieldValue.increment(
+                            balanceType === 'points' ? -Math.round(amount) : -amount
+                        );
+                    } else if (action === 'set') {
+                        updateData[balanceType] = balanceType === 'points' ? Math.round(amount) : amount;
+                    }
+                    
+                    await userRef.update(updateData);
+                }
+                
+                // Record the adjustment in a separate collection for audit
+                await db.collection('balanceAdjustments').add(adjustment);
+                
+                alert('Balance updated successfully!');
+                fetchUserBalances(userId);
+                document.getElementById('balance-amount').value = '';
+                document.getElementById('balance-reason').value = '';
+                
+            } catch (error) {
+                console.error('Error adjusting balance:', error);
+                alert('Failed to adjust balance: ' + error.message);
+            }
+        }
+
         // Load deposits
         function loadDeposits() {
             rdb.ref('deposits').orderByChild('timestamp').on('value', snapshot => {
@@ -77,9 +290,10 @@
                                       deposit.status === 'rejected' ? 'status-rejected' : 'status-pending';
                     
                     const div = document.createElement('div');
-                    div.className = 'deposit';
+                    div.className = 'card';
                     div.innerHTML = `
                         <div class="user-info"><strong>User ID:</strong> ${deposit.userId}</div>
+                        <div class="user-info"><strong>Email:</strong> ${deposit.userEmail || 'N/A'}</div>
                         <div class="user-info"><strong>Amount:</strong> $${deposit.amount} USDT</div>
                         <div class="user-info"><strong>TX Hash:</strong> ${deposit.transactionHash}</div>
                         <div class="user-info"><strong>Status:</strong> <span class="${statusClass}">${deposit.status || 'pending'}</span></div>
@@ -120,7 +334,7 @@
                                       withdrawal.status === 'rejected' ? 'status-rejected' : 'status-pending';
                     
                     const div = document.createElement('div');
-                    div.className = 'deposit';
+                    div.className = 'card';
                     div.innerHTML = `
                         <div class="user-info"><strong>User ID:</strong> ${withdrawal.userId}</div>
                         <div class="user-info"><strong>Email:</strong> ${withdrawal.userEmail || 'N/A'}</div>
@@ -150,25 +364,11 @@
             if (!confirm(`Approve $${amount} USDT deposit?`)) return;
             
             try {
-                // First check if user document exists
                 const userRef = db.collection('users').doc(userId);
-                const userDoc = await userRef.get();
+                await userRef.update({
+                    depositBalance: firebase.firestore.FieldValue.increment(parseFloat(amount))
+                });
                 
-                if (!userDoc.exists) {
-                    // Create user document if it doesn't exist
-                    await userRef.set({
-                        depositBalance: parseFloat(amount),
-                        taskEarnings: 0,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                } else {
-                    // Update existing user balance
-                    await userRef.update({
-                        depositBalance: firebase.firestore.FieldValue.increment(parseFloat(amount))
-                    });
-                }
-                
-                // Update deposit status
                 await rdb.ref(`deposits/${depositId}`).update({ 
                     status: 'approved',
                     processedAt: Date.now()
@@ -186,13 +386,11 @@
             if (!confirm(`Approve $${amount} USDT withdrawal? This will deduct from user's earnings balance.`)) return;
             
             try {
-                // Update user balance in Firestore (deduct from taskEarnings)
                 const userRef = db.collection('users').doc(userId);
                 await userRef.update({
                     taskEarnings: firebase.firestore.FieldValue.increment(-parseFloat(amount))
                 });
                 
-                // Update withdrawal status
                 await rdb.ref(`withdrawals/${withdrawalId}`).update({ 
                     status: 'approved',
                     processedAt: Date.now()
