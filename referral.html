@@ -140,22 +140,11 @@
             font-weight: bold;
             color: #e74c3c;
         }
-        .logo {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .logo img {
-            max-width: 150px;
-        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <div class="logo">
-            <img src="logo.png" alt="VideoCall">
-        </div>
-
         <h1>Referral Program</h1>
         <div class="subtitle">meerliinn.github.io/VideoCall/</div>
         
@@ -217,7 +206,7 @@
                 <li>Share your referral link or code with friends</li>
                 <li>They sign up using your link or enter your code</li>
                 <li>You earn <span class="highlight">10 points</span> for each successful referral</li>
-                <li>Use your points to withdraw or invest in products</li>
+                <li>Redeem your points for rewards in the rewards section</li>
             </ol>
         </div>
         
@@ -231,18 +220,16 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // Firebase Configuration
+        // Firebase Configuration (using home.html config)
         const firebaseConfig = {
-  apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
-  authDomain: "newporoject-c6f66.firebaseapp.com",
-  databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
-  projectId: "newporoject-c6f66",
-  storageBucket: "newporoject-c6f66.appspot.com",
-  messagingSenderId: "733557611631",
-  appId: "1:733557611631:web:02c9377f56d614ff3b019a",
-  measurementId: "G-53BEVW33FP"
-};
-
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
@@ -268,11 +255,18 @@
                 
                 if (userDoc.exists) {
                     const userData = userDoc.data();
-                    const referralCode = userData.referralCode || generateReferralCode();
+                    // Ensure referral code exists or generate one
+                    let referralCode = userData.referralCode;
+                    if (!referralCode) {
+                        referralCode = generateReferralCode();
+                        await db.collection('users').doc(user.uid).update({
+                            referralCode: referralCode
+                        });
+                    }
                     
                     // Update UI with correct path
                     referralCodeInput.value = referralCode;
-                    referralLinkInput.value = `https://meerliinn.github.io/VideoCall/sign.html?ref=${referralCode}`;
+                    referralLinkInput.value = `${window.location.origin}/sign.html?ref=${referralCode}`;
                     
                     // Update stats
                     updateReferralStats(userData);
