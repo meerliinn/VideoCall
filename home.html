@@ -210,7 +210,6 @@
                 window.location.href = 'sign.html';
             } else {
                 loadUserData(user.uid);
-                setupRealtimeUpdates(user.uid);
             }
         });
 
@@ -237,21 +236,6 @@
                         }
                     }
                 });
-        }
-
-        // Set up realtime listener for balance updates
-        function setupRealtimeUpdates(userId) {
-            db.collection('users').doc(userId).onSnapshot((doc) => {
-                if (doc.exists) {
-                    const userData = doc.data();
-                    document.getElementById('deposit-balance').textContent = 
-                        userData.depositBalance ? userData.depositBalance.toFixed(2) : '0.00';
-                    document.getElementById('earning-balance').textContent = 
-                        userData.taskEarnings ? userData.taskEarnings.toFixed(2) : '0.00';
-                    document.getElementById('points-balance').textContent = 
-                        userData.points || 0;
-                }
-            });
         }
 
         // Display invited users list
