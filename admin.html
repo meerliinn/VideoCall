@@ -49,6 +49,11 @@
         .tab.active { background: #fff; border: 1px solid #ddd; border-bottom: 1px solid #fff; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        .referral-list { max-height: 500px; overflow-y: auto; }
+        .referral-item { padding: 10px; border-bottom: 1px solid #eee; }
+        .referral-item:hover { background: #f9f9f9; }
+        .tree-node { margin-left: 20px; }
+        .tree-toggle { cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -59,6 +64,7 @@
             <div class="tab active" onclick="switchTab('balance-control')">Balance Control</div>
             <div class="tab" onclick="switchTab('deposit-approvals')">Deposit Approvals</div>
             <div class="tab" onclick="switchTab('withdrawal-approvals')">Withdrawal Approvals</div>
+            <div class="tab" onclick="switchTab('referral-network')">Referral Network</div>
         </div>
         
         <div id="balance-control" class="tab-content active">
@@ -111,6 +117,16 @@
         <div id="withdrawal-approvals" class="tab-content">
             <h2>Withdrawal Approvals</h2>
             <div id="withdrawals"></div>
+        </div>
+        
+        <div id="referral-network" class="tab-content">
+            <h2>Referral Network</h2>
+            <div class="form-group">
+                <label for="referral-search">Search User</label>
+                <input type="text" id="referral-search" placeholder="Enter user ID or email" onkeyup="searchReferralUser()">
+            </div>
+            <div id="referral-results"></div>
+            <div id="referral-tree" style="margin-top: 20px;"></div>
         </div>
     </div>
 
@@ -357,6 +373,103 @@
                     withdrawalsDiv.appendChild(div);
                 });
             });
+        }
+
+        // Search for referral user
+        async function searchReferralUser() {
+            const searchTerm = document.getElementById('referral-search').value.trim();
+            if (!searchTerm) {
+                document.getElementById('referral-results').innerHTML = '';
+                return;
+            }
+
+            try {
+                // Search by email or ID
+                const snapshot = await db.collection('users')
+                    .where('email', '==', searchTerm)
+                    .get();
+
+                if (snapshot.empty) {
+                    // Try searching by ID
+                    const userDoc = await db.collection('users').doc(searchTerm).get();
+                    if (userDoc.exists) {
+                        displayReferralUser(userDoc);
+                    } else {
+                        document.getElementById('referral-results').innerHTML = '<p>No user found</p>';
+                    }
+                } else {
+                    snapshot.forEach(doc => {
+                        displayReferralUser(doc);
+                    });
+                }
+            } catch (error) {
+                console.error('Error searching user:', error);
+            }
+        }
+
+        // Display referral user info
+        function displayReferralUser(userDoc) {
+            const userData = userDoc.data();
+            const resultsDiv = document.getElementById('referral-results');
+            
+            resultsDiv.innerHTML = `
+                <div class="card">
+                    <h3>User Info</h3>
+                    <div class="user-info"><strong>ID:</strong> ${userDoc.id}</div>
+                    <div class="user-info"><strong>Email:</strong> ${userData.email}</div>
+                    <div class="user-info"><strong>Referral Code:</strong> ${userData.referralCode}</div>
+                    <div class="user-info"><strong>Referred By:</strong> ${userData.referredBy || 'None'}</div>
+                    <div class="user-info"><strong>Points:</strong> ${userData.points || 0}</div>
+                    <div class="user-info"><strong>Invited Users:</strong> ${userData.invitedUsers?.length || 0}</div>
+                    <button class="primary" onclick="loadReferralTree('${userDoc.id}')">View Network</button>
+                </div>
+            `;
+        }
+
+        // Load referral tree
+        async function loadReferralTree(userId) {
+            try {
+                const userDoc = await db.collection('users').doc(userId).get();
+                if (!userDoc.exists) return;
+
+                const userData = userDoc.data();
+                let treeHTML = `
+                    <div class="card">
+                        <h3>Referral Network for ${userData.email}</h3>
+                        <div class="user-info"><strong>Direct Referrals (${userData.invitedUsers?.length || 0})</strong></div>
+                        <div class="referral-list" id="referral-list-${userId}"></div>
+                    </div>
+                `;
+
+                document.getElementById('referral-tree').innerHTML = treeHTML;
+                
+                // Load direct referrals
+                if (userData.invitedUsers && userData.invitedUsers.length > 0) {
+                    const listElement = document.getElementById(`referral-list-${userId}`);
+                    
+                    for (const referral of userData.invitedUsers) {
+                        const refUserDoc = await db.collection('users').doc(referral.userId).get();
+                        if (refUserDoc.exists) {
+                            const refData = refUserDoc.data();
+                            const date = referral.date.toDate().toLocaleString();
+                            
+                            const div = document.createElement('div');
+                            div.className = 'referral-item';
+                            div.innerHTML = `
+                                <div>
+                                    <strong>${refData.email}</strong> (${date}) - ${referral.pointsEarned} points
+                                    <button class="primary" style="padding: 2px 5px; font-size: 12px; margin-left: 10px;" 
+                                        onclick="loadReferralTree('${referral.userId}')">View Downline</button>
+                                </div>
+                                <div id="downline-${referral.userId}" class="tree-node"></div>
+                            `;
+                            listElement.appendChild(div);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading referral tree:', error);
+            }
         }
 
         // Approve deposit
