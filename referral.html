@@ -145,22 +145,35 @@
             padding: 15px;
             background-color: #f8f9fa;
             border-radius: 8px;
+            display: none;
         }
         .invited-users h3 {
             margin-top: 0;
             text-align: center;
         }
         .invited-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
             list-style-type: none;
             padding: 0;
         }
         .invited-item {
-            padding: 8px 0;
-            border-bottom: 1px solid #ddd;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        .invited-info {
+            flex: 1;
         }
         .invited-date {
             font-size: 12px;
             color: #7f8c8d;
+        }
+        .invited-points {
+            font-weight: bold;
+            color: #28a745;
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -201,7 +214,7 @@
                 </button>
             </div>
             
-            <div id="invited-users-container" class="invited-users" style="display: none;">
+            <div id="invited-users-container" class="invited-users">
                 <h3>Your Invited Users</h3>
                 <ul id="invited-users-list" class="invited-list"></ul>
             </div>
@@ -249,13 +262,12 @@
     <script>
         // Firebase Configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
-            authDomain: "newporoject-c6f66.firebaseapp.com",
-            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
-            projectId: "newporoject-c6f66",
-            storageBucket: "newporoject-c6f66.appspot.com",
-            messagingSenderId: "733557611631",
-            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
 
         // Initialize Firebase
@@ -272,64 +284,48 @@
         const invitedUsersList = document.getElementById('invited-users-list');
 
         // Check authentication state
-        auth.onAuthStateChanged(async (user) => {
+        auth.onAuthStateChanged((user) => {
             if (!user) {
                 window.location.href = 'sign.html';
                 return;
             }
-
-            try {
-                // Get user document
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    // Ensure referral code exists or generate one
-                    let referralCode = userData.referralCode;
-                    if (!referralCode) {
-                        referralCode = generateReferralCode();
-                        await db.collection('users').doc(user.uid).update({
-                            referralCode: referralCode
-                        });
-                    }
-                    
-                    // Update UI with correct path
-                    referralCodeInput.value = referralCode;
-                    referralLinkInput.value = `https://meerliinn.github.io/VideoCall/sign.html?ref=${referralCode}`;
-                    
-                    // Update stats
-                    updateReferralStats(userData);
-                    
-                    // Display invited users if any
-                    if (userData.invitedUsers && userData.invitedUsers.length > 0) {
-                        displayInvitedUsers(userData.invitedUsers);
-                        invitedUsersContainer.style.display = 'block';
-                    }
-                }
-            } catch (error) {
-                console.error("Error:", error);
-                alert("Error loading referral data. Please refresh.");
-            }
+            loadReferralData(user.uid);
         });
 
-        function generateReferralCode() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let result = '';
-            for (let i = 0; i < 8; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
+        // Load user referral data
+        async function loadReferralData(userId) {
+            try {
+                const userDoc = await db.collection('users').doc(userId).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    
+                    // Set referral code and link
+                    referralCodeInput.value = userData.referralCode;
+                    referralLinkInput.value = 
+                        `${window.location.origin}/sign.html?ref=${userData.referralCode}`;
+                    
+                    // Update stats
+                    totalReferralsEl.textContent = 
+                        userData.invitedUsers ? userData.invitedUsers.length : 0;
+                    totalPointsEl.textContent = 
+                        userData.points || 0;
+                    
+                    // Display invited users
+                    displayInvitedUsers(userData.invitedUsers || []);
+                }
+            } catch (error) {
+                console.error("Error loading referral data:", error);
             }
-            return result;
         }
 
-        function updateReferralStats(userData) {
-            const referralCount = userData.invitedUsers ? userData.invitedUsers.length : 0;
-            const pointsEarned = userData.points || 0;
-            
-            totalReferralsEl.textContent = referralCount;
-            totalPointsEl.textContent = pointsEarned;
-        }
-
+        // Display invited users
         function displayInvitedUsers(invitedUsers) {
+            if (!invitedUsers || invitedUsers.length === 0) {
+                invitedUsersContainer.style.display = 'none';
+                return;
+            }
+            
+            invitedUsersContainer.style.display = 'block';
             invitedUsersList.innerHTML = '';
             
             // Sort by date (newest first)
@@ -341,43 +337,49 @@
                 
                 const date = user.date.toDate().toLocaleString();
                 li.innerHTML = `
-                    ${user.email}
-                    <div class="invited-date">${date} - +10 points</div>
+                    <div class="invited-info">
+                        <div>${user.email}</div>
+                        <div class="invited-date">${date}</div>
+                    </div>
+                    <div class="invited-points">+${user.pointsEarned} points</div>
                 `;
                 
                 invitedUsersList.appendChild(li);
             });
         }
 
+        // Copy code to clipboard
         function copyCode() {
             referralCodeInput.select();
             document.execCommand('copy');
             alert('Referral code copied to clipboard!');
         }
 
+        // Copy link to clipboard
         function copyLink() {
             referralLinkInput.select();
             document.execCommand('copy');
             alert('Referral link copied to clipboard!');
         }
 
+        // Share functions
         function shareFacebook() {
-            const link = encodeURIComponent(document.getElementById('referral-link').value);
+            const link = encodeURIComponent(referralLinkInput.value);
             window.open(`https://www.facebook.com/sharer/sharer.php?u=${link}`, '_blank');
         }
 
         function shareTwitter() {
-            const link = encodeURIComponent(document.getElementById('referral-link').value);
+            const link = encodeURIComponent(referralLinkInput.value);
             window.open(`https://twitter.com/intent/tweet?text=Join%20me!&url=${link}`, '_blank');
         }
 
         function shareWhatsApp() {
-            const link = encodeURIComponent(document.getElementById('referral-link').value);
+            const link = encodeURIComponent(referralLinkInput.value);
             window.open(`https://wa.me/?text=Join%20me%20${link}`, '_blank');
         }
 
         function shareTelegram() {
-            const link = encodeURIComponent(document.getElementById('referral-link').value);
+            const link = encodeURIComponent(referralLinkInput.value);
             window.open(`https://t.me/share/url?url=${link}&text=Join%20me`, '_blank');
         }
     </script>
