@@ -163,7 +163,95 @@
             }
             return result;
         }
+        
+// Generate referral code
+        function generateReferralCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let result = '';
+            for (let i = 0; i < 8; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
 
+        // Sign up function with complete referral tracking
+        async function signUp() {
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const referralCode = document.getElementById('referral-code-input').value || urlReferralCode;
+
+            try {
+                // Create user
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                // Generate referral code for new user
+                const userRefCode = generateReferralCode();
+                
+                // Create user data
+                const userData = {
+                    email: email,
+                    referralCode: userRefCode,
+                    referredBy: referralCode || null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    points: 0,
+                    invitedUsers: [],
+                    depositBalance: 0,
+                    taskEarnings: 0
+                };
+
+                // Use transaction to ensure data consistency
+                await db.runTransaction(async (transaction) => {
+                    // Create new user document
+                    transaction.set(db.collection('users').doc(user.uid), userData);
+
+                    // Process referral if exists
+                    if (referralCode) {
+                        const referrerQuery = await db.collection('users')
+                            .where('referralCode', '==', referralCode)
+                            .limit(1)
+                            .get();
+
+                        if (!referrerQuery.empty) {
+                            const referrerDoc = referrerQuery.docs[0];
+                            const referrerId = referrerDoc.id;
+
+                            // Create referral data
+                            const referralData = {
+                                referrerId: referrerId,
+                                referredUserId: user.uid,
+                                referredEmail: email,
+                                points: 10,
+                                date: firebase.firestore.FieldValue.serverTimestamp(),
+                                status: 'completed'
+                            };
+
+                            // Add to referral history
+                            transaction.set(db.collection('referralHistory').doc(), referralData);
+
+                            // Update referrer's points and invited users
+                            transaction.update(db.collection('users').doc(referrerId), {
+                                points: firebase.firestore.FieldValue.increment(10),
+                                invitedUsers: firebase.firestore.FieldValue.arrayUnion({
+                                    userId: user.uid,
+                                    email: email,
+                                    date: firebase.firestore.FieldValue.serverTimestamp(),
+                                    pointsEarned: 10,
+                                    status: 'completed'
+                                })
+                            });
+                        }
+                    }
+                });
+
+                showMessage('Account created! Redirecting...', 'success');
+                setTimeout(() => window.location.href = 'home.html', 1500);
+                
+            } catch (error) {
+                console.error("Signup error:", error);
+                showMessage(error.message, 'error');
+            }
+        }
         // Sign up function with referral tracking
         async function signUp() {
             const email = document.getElementById('signup-email').value;
