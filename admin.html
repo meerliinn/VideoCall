@@ -95,7 +95,7 @@
         
         .user-list {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
             gap: 15px;
         }
         
@@ -190,10 +190,104 @@
             color: white;
         }
         
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+        
         .loading {
             text-align: center;
             padding: 20px;
             color: #7f8c8d;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+            position: relative;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .proof-image {
+            max-width: 100%;
+            max-height: 80vh;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 5px;
+        }
+        
+        .page-btn {
+            padding: 8px 12px;
+            background: var(--light);
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+        
+        .page-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -210,16 +304,36 @@
             <div class="tab active" onclick="switchTab('users')"><i class="fas fa-users"></i> Users</div>
             <div class="tab" onclick="switchTab('deposits')"><i class="fas fa-money-bill-wave"></i> Deposits</div>
             <div class="tab" onclick="switchTab('withdrawals')"><i class="fas fa-hand-holding-usd"></i> Withdrawals</div>
+            <div class="tab" onclick="switchTab('stats')"><i class="fas fa-chart-bar"></i> Statistics</div>
         </div>
         
         <!-- Users Tab -->
         <div id="users" class="tab-content active">
             <div class="search-box">
-                <input type="text" id="user-search" placeholder="Search by email or UID" onkeyup="searchUsers()">
+                <input type="text" id="user-search" placeholder="Search by email, UID or referral code" onkeyup="searchUsers()">
+            </div>
+            <div class="stats-container" id="user-stats">
+                <div class="stat-card">
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-value" id="total-users">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Active Today</div>
+                    <div class="stat-value" id="active-users">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Deposits</div>
+                    <div class="stat-value" id="total-deposits">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Earnings</div>
+                    <div class="stat-value" id="total-earnings">$0</div>
+                </div>
             </div>
             <div class="user-list" id="user-list">
                 <div class="card loading">Loading users...</div>
             </div>
+            <div class="pagination" id="user-pagination"></div>
         </div>
         
         <!-- Deposits Tab -->
@@ -227,18 +341,100 @@
             <div class="search-box">
                 <input type="text" id="deposit-search" placeholder="Search deposits by email, UID or transaction hash" onkeyup="searchDeposits()">
             </div>
+            <div class="stats-container" id="deposit-stats">
+                <div class="stat-card">
+                    <div class="stat-label">Pending Deposits</div>
+                    <div class="stat-value" id="pending-deposits">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Approved Today</div>
+                    <div class="stat-value" id="approved-deposits-today">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Approved</div>
+                    <div class="stat-value" id="total-approved-deposits">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Average Deposit</div>
+                    <div class="stat-value" id="average-deposit">$0</div>
+                </div>
+            </div>
             <div class="user-list" id="deposit-list">
                 <div class="card loading">Loading deposits...</div>
             </div>
+            <div class="pagination" id="deposit-pagination"></div>
         </div>
         
         <!-- Withdrawals Tab -->
         <div id="withdrawals" class="tab-content">
             <div class="search-box">
-                <input type="text" id="withdrawal-search" placeholder="Search withdrawals by email or UID" onkeyup="searchWithdrawals()">
+                <input type="text" id="withdrawal-search" placeholder="Search withdrawals by email, UID or wallet address" onkeyup="searchWithdrawals()">
+            </div>
+            <div class="stats-container" id="withdrawal-stats">
+                <div class="stat-card">
+                    <div class="stat-label">Pending Withdrawals</div>
+                    <div class="stat-value" id="pending-withdrawals">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Approved Today</div>
+                    <div class="stat-value" id="approved-withdrawals-today">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Approved</div>
+                    <div class="stat-value" id="total-approved-withdrawals">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Average Withdrawal</div>
+                    <div class="stat-value" id="average-withdrawal">$0</div>
+                </div>
             </div>
             <div class="user-list" id="withdrawal-list">
                 <div class="card loading">Loading withdrawals...</div>
+            </div>
+            <div class="pagination" id="withdrawal-pagination"></div>
+        </div>
+        
+        <!-- Statistics Tab -->
+        <div id="stats" class="tab-content">
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-value" id="stats-total-users">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">New Today</div>
+                    <div class="stat-value" id="new-users-today">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Active Today</div>
+                    <div class="stat-value" id="stats-active-users">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Referrals</div>
+                    <div class="stat-value" id="total-referrals">0</div>
+                </div>
+            </div>
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-label">Total Deposits</div>
+                    <div class="stat-value" id="stats-total-deposits">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Deposits Today</div>
+                    <div class="stat-value" id="deposits-today">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Withdrawals</div>
+                    <div class="stat-value" id="stats-total-withdrawals">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Withdrawals Today</div>
+                    <div class="stat-value" id="withdrawals-today">$0</div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Recent Activity</h3>
+                <div id="recent-activity" class="user-list"></div>
             </div>
         </div>
     </div>
@@ -251,361 +447,874 @@
 
     <script>
         // Firebase Configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
-    authDomain: "newporoject-c6f66.firebaseapp.com",
-    databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
-    projectId: "newporoject-c6f66",
-    storageBucket: "newporoject-c6f66.appspot.com",
-    messagingSenderId: "733557611631",
-    appId: "1:733557611631:web:02c9377f56d614ff3b019a"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-const rdb = firebase.database();
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const rdb = firebase.database();
 
-// Current admin user and cache
-let currentAdmin = null;
-let usersCache = {};
+        // Current admin user and cache
+        let currentAdmin = null;
+        let usersCache = {};
+        let allUsers = [];
+        let allDeposits = [];
+        let allWithdrawals = [];
+        let currentUserPage = 1;
+        let currentDepositPage = 1;
+        let currentWithdrawalPage = 1;
+        const itemsPerPage = 20;
 
-// Initialize the page
-document.addEventListener('DOMContentLoaded', function() {
-    auth.onAuthStateChanged((user) => {
-        if (!user) {
-            window.location.href = 'sign.html';
-        } else {
-            currentAdmin = user;
-            loadAllUsers();
-            loadPendingDeposits();
-            loadPendingWithdrawals();
-        }
-    });
-});
-
-// Load all users with emails
-async function loadAllUsers() {
-    try {
-        const userList = document.getElementById('user-list');
-        userList.innerHTML = '<div class="card loading">Loading users...</div>';
-        
-        const snapshot = await db.collection('users').orderBy('createdAt', 'desc').limit(50).get();
-        
-        userList.innerHTML = '';
-        snapshot.forEach(doc => {
-            const userData = doc.data();
-            const userEmail = userData.email || 'N/A';
-            const createdAt = userData.createdAt?.toDate() || new Date();
-            
-            const userItem = document.createElement('div');
-            userItem.className = 'user-item';
-            userItem.innerHTML = `
-                <div class="user-email">${userEmail}</div>
-                <div class="user-id">ID: ${doc.id}</div>
-                <div class="user-date">Joined: ${createdAt.toLocaleString()}</div>
-                <div class="user-balance">
-                    <div class="balance-row">
-                        <span>Deposit:</span>
-                        <span>$${(userData.depositBalance || 0).toFixed(2)} USDT</span>
-                    </div>
-                    <div class="balance-row">
-                        <span>Earnings:</span>
-                        <span>$${(userData.taskEarnings || 0).toFixed(2)} USDT</span>
-                    </div>
-                </div>
-                <div class="action-buttons">
-                    <button class="btn btn-primary" onclick="viewUser('${doc.id}')">
-                        <i class="fas fa-eye"></i> View
-                    </button>
-                </div>
-            `;
-            userList.appendChild(userItem);
-            usersCache[doc.id] = userData;
-        });
-    } catch (error) {
-        console.error('Error loading users:', error);
-        document.getElementById('user-list').innerHTML = '<div class="card">Error loading users</div>';
-    }
-}
-
-// Load pending deposits with emails (updated for your Realtime DB structure)
-async function loadPendingDeposits() {
-    try {
-        const depositList = document.getElementById('deposit-list');
-        depositList.innerHTML = '<div class="card loading">Loading deposits...</div>';
-        
-        const snapshot = await rdb.ref('deposits').orderByChild('status').equalTo('pending').once('value');
-        
-        depositList.innerHTML = '';
-        if (!snapshot.exists()) {
-            depositList.innerHTML = '<div class="card">No pending deposits</div>';
-            return;
-        }
-
-        const deposits = [];
-        snapshot.forEach(child => {
-            deposits.push({
-                key: child.key,
-                ...child.val()
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            auth.onAuthStateChanged((user) => {
+                if (!user) {
+                    window.location.href = 'sign.html';
+                } else {
+                    currentAdmin = user;
+                    loadAllUsers();
+                    loadAllDeposits();
+                    loadAllWithdrawals();
+                    loadStatistics();
+                }
             });
         });
 
-        // Process deposits with emails
-        for (const deposit of deposits) {
-            // Use email from deposit record if available (from your DB screenshots)
-            const userEmail = deposit.userEmail || 'N/A';
-            const date = new Date(deposit.timestamp);
+        // Load all users with complete details
+        async function loadAllUsers() {
+            try {
+                const userList = document.getElementById('user-list');
+                userList.innerHTML = '<div class="card loading">Loading users...</div>';
+                
+                const snapshot = await db.collection('users').orderBy('createdAt', 'desc').get();
+                allUsers = [];
+                
+                snapshot.forEach(doc => {
+                    const userData = doc.data();
+                    userData.id = doc.id;
+                    allUsers.push(userData);
+                    usersCache[doc.id] = userData;
+                });
+
+                updateUserStats();
+                displayUsers(currentUserPage);
+                setupUserPagination();
+            } catch (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('user-list').innerHTML = '<div class="card">Error loading users</div>';
+            }
+        }
+
+        // Display users with pagination
+        function displayUsers(page) {
+            currentUserPage = page;
+            const userList = document.getElementById('user-list');
+            userList.innerHTML = '';
             
-            const div = document.createElement('div');
-            div.className = 'deposit-item';
-            div.innerHTML = `
-                <div class="user-email">${userEmail}</div>
-                <div class="user-id">ID: ${deposit.userId}</div>
-                <div class="user-date">${date.toLocaleString()}</div>
-                <div class="user-balance">
-                    <div class="balance-row">
-                        <span>Amount:</span>
-                        <span>$${deposit.amount} USDT</span>
+            const startIndex = (page - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const usersToDisplay = allUsers.slice(startIndex, endIndex);
+            
+            if (usersToDisplay.length === 0) {
+                userList.innerHTML = '<div class="card">No users found</div>';
+                return;
+            }
+            
+            usersToDisplay.forEach(userData => {
+                const userEmail = userData.email || 'N/A';
+                const createdAt = userData.createdAt?.toDate() || new Date();
+                const lastLogin = userData.lastLogin?.toDate() || null;
+                
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                userItem.innerHTML = `
+                    <div class="user-email">${userEmail}</div>
+                    <div class="user-id">ID: ${userData.id}</div>
+                    <div class="user-date">Joined: ${createdAt.toLocaleString()}</div>
+                    ${lastLogin ? `<div class="user-date">Last Login: ${lastLogin.toLocaleString()}</div>` : ''}
+                    <div class="user-balance">
+                        <div class="balance-row">
+                            <span>Deposit:</span>
+                            <span>$${(userData.depositBalance || 0).toFixed(2)} USDT</span>
+                        </div>
+                        <div class="balance-row">
+                            <span>Earnings:</span>
+                            <span>$${(userData.taskEarnings || 0).toFixed(2)} USDT</span>
+                        </div>
+                        <div class="balance-row">
+                            <span>Points:</span>
+                            <span>${userData.points || 0}</span>
+                        </div>
+                        <div class="balance-row">
+                            <span>Referral Code:</span>
+                            <span>${userData.referralCode || userData.id}</span>
+                        </div>
+                        <div class="balance-row">
+                            <span>Referred By:</span>
+                            <span>${userData.referredBy || 'None'}</span>
+                        </div>
+                        <div class="balance-row">
+                            <span>Referrals:</span>
+                            <span>${userData.invitedUsers?.length || 0}</span>
+                        </div>
                     </div>
-                    <div class="balance-row">
-                        <span>TX Hash:</span>
-                        <span>${deposit.transactionHash || 'N/A'}</span>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="viewUser('${userData.id}')">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <button class="btn btn-warning" onclick="editUser('${userData.id}')">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
                     </div>
-                </div>
-                <div class="action-buttons">
-                    ${deposit.proofImage ? `
-                    <button class="btn btn-primary" onclick="showImage('${deposit.proofImage}')">
-                        <i class="fas fa-image"></i> View Proof
-                    </button>` : ''}
-                    <button class="btn btn-success" onclick="approveDeposit('${deposit.key}', '${deposit.userId}', ${deposit.amount})">
-                        <i class="fas fa-check"></i> Approve
-                    </button>
-                    <button class="btn btn-danger" onclick="rejectDeposit('${deposit.key}')">
-                        <i class="fas fa-times"></i> Reject
-                    </button>
-                </div>
-            `;
-            depositList.appendChild(div);
-        }
-    } catch (error) {
-        console.error('Error loading deposits:', error);
-        document.getElementById('deposit-list').innerHTML = '<div class="card">Error loading deposits</div>';
-    }
-}
-
-// Load pending withdrawals with emails (updated for your Realtime DB structure)
-async function loadPendingWithdrawals() {
-    try {
-        const withdrawalList = document.getElementById('withdrawal-list');
-        withdrawalList.innerHTML = '<div class="card loading">Loading withdrawals...</div>';
-        
-        const snapshot = await rdb.ref('withdrawals').orderByChild('status').equalTo('pending').once('value');
-        
-        withdrawalList.innerHTML = '';
-        if (!snapshot.exists()) {
-            withdrawalList.innerHTML = '<div class="card">No pending withdrawals</div>';
-            return;
-        }
-
-        const withdrawals = [];
-        snapshot.forEach(child => {
-            withdrawals.push({
-                key: child.key,
-                ...child.val()
+                `;
+                userList.appendChild(userItem);
             });
-        });
+        }
 
-        // Process withdrawals with emails
-        for (const withdrawal of withdrawals) {
-            // Use email from withdrawal record if available (from your DB screenshots)
-            const userEmail = withdrawal.userEmail || 'N/A';
-            const date = new Date(withdrawal.timestamp);
+        // Setup user pagination
+        function setupUserPagination() {
+            const pagination = document.getElementById('user-pagination');
+            pagination.innerHTML = '';
             
-            const div = document.createElement('div');
-            div.className = 'withdrawal-item';
-            div.innerHTML = `
-                <div class="user-email">${userEmail}</div>
-                <div class="user-id">ID: ${withdrawal.userId}</div>
-                <div class="user-date">${date.toLocaleString()}</div>
-                <div class="user-balance">
-                    <div class="balance-row">
-                        <span>Amount:</span>
-                        <span>$${withdrawal.amount} USDT</span>
-                    </div>
-                    <div class="balance-row">
-                        <span>Wallet:</span>
-                        <span>${withdrawal.walletAddress || 'N/A'}</span>
-                    </div>
-                </div>
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="approveWithdrawal('${withdrawal.key}', '${withdrawal.userId}', ${withdrawal.amount})">
-                        <i class="fas fa-check"></i> Approve
-                    </button>
-                    <button class="btn btn-danger" onclick="rejectWithdrawal('${withdrawal.key}')">
-                        <i class="fas fa-times"></i> Reject
-                    </button>
-                </div>
-            `;
-            withdrawalList.appendChild(div);
+            const totalPages = Math.ceil(allUsers.length / itemsPerPage);
+            
+            if (totalPages <= 1) return;
+            
+            // Previous button
+            if (currentUserPage > 1) {
+                const prevBtn = document.createElement('button');
+                prevBtn.className = 'page-btn';
+                prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                prevBtn.onclick = () => displayUsers(currentUserPage - 1);
+                pagination.appendChild(prevBtn);
+            }
+            
+            // Page buttons
+            for (let i = 1; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = `page-btn ${i === currentUserPage ? 'active' : ''}`;
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => displayUsers(i);
+                pagination.appendChild(pageBtn);
+            }
+            
+            // Next button
+            if (currentUserPage < totalPages) {
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'page-btn';
+                nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                nextBtn.onclick = () => displayUsers(currentUserPage + 1);
+                pagination.appendChild(nextBtn);
+            }
         }
-    } catch (error) {
-        console.error('Error loading withdrawals:', error);
-        document.getElementById('withdrawal-list').innerHTML = '<div class="card">Error loading withdrawals</div>';
-    }
-}
 
-// Show image in modal
-function showImage(imageUrl) {
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.onclick = function() {
-        document.body.removeChild(modal);
-    };
-    
-    const modalContent = document.createElement('div');
-    modalContent.className = 'modal-content';
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'modal-close';
-    closeBtn.innerHTML = '&times;';
-    closeBtn.onclick = function(e) {
-        e.stopPropagation();
-        document.body.removeChild(modal);
-    };
-    
-    const img = document.createElement('img');
-    img.src = imageUrl;
-    img.className = 'proof-image';
-    
-    modalContent.appendChild(closeBtn);
-    modalContent.appendChild(img);
-    modal.appendChild(modalContent);
-    document.body.appendChild(modal);
-}
-
-// Approve deposit
-async function approveDeposit(depositId, userId, amount) {
-    if (!confirm(`Approve $${amount} deposit for user ${userId}?`)) return;
-    
-    try {
-        // Update user balance in Firestore
-        await db.collection('users').doc(userId).update({
-            depositBalance: firebase.firestore.FieldValue.increment(amount)
-        });
-        
-        // Update deposit status in Realtime DB
-        await rdb.ref(`deposits/${depositId}`).update({
-            status: 'approved',
-            processedAt: Date.now(),
-            processedBy: currentAdmin.uid
-        });
-        
-        alert('Deposit approved successfully!');
-        loadPendingDeposits();
-    } catch (error) {
-        console.error('Error approving deposit:', error);
-        alert('Failed to approve deposit');
-    }
-}
-
-// Reject deposit
-async function rejectDeposit(depositId) {
-    if (!confirm('Reject this deposit?')) return;
-    
-    try {
-        await rdb.ref(`deposits/${depositId}`).update({
-            status: 'rejected',
-            processedAt: Date.now(),
-            processedBy: currentAdmin.uid
-        });
-        alert('Deposit rejected');
-        loadPendingDeposits();
-    } catch (error) {
-        console.error('Error rejecting deposit:', error);
-        alert('Failed to reject deposit');
-    }
-}
-
-// Approve withdrawal
-async function approveWithdrawal(withdrawalId, userId, amount) {
-    if (!confirm(`Approve $${amount} withdrawal for user ${userId}?`)) return;
-    
-    try {
-        // Update user balance in Firestore
-        await db.collection('users').doc(userId).update({
-            taskEarnings: firebase.firestore.FieldValue.increment(-amount)
-        });
-        
-        // Update withdrawal status in Realtime DB
-        await rdb.ref(`withdrawals/${withdrawalId}`).update({
-            status: 'approved',
-            processedAt: Date.now(),
-            processedBy: currentAdmin.uid
-        });
-        
-        alert('Withdrawal approved successfully!');
-        loadPendingWithdrawals();
-    } catch (error) {
-        console.error('Error approving withdrawal:', error);
-        alert('Failed to approve withdrawal');
-    }
-}
-
-// Reject withdrawal
-async function rejectWithdrawal(withdrawalId) {
-    if (!confirm('Reject this withdrawal?')) return;
-    
-    try {
-        await rdb.ref(`withdrawals/${withdrawalId}`).update({
-            status: 'rejected',
-            processedAt: Date.now(),
-            processedBy: currentAdmin.uid
-        });
-        alert('Withdrawal rejected');
-        loadPendingWithdrawals();
-    } catch (error) {
-        console.error('Error rejecting withdrawal:', error);
-        alert('Failed to reject withdrawal');
-    }
-}
-
-// View user details
-async function viewUser(userId) {
-    try {
-        const userDoc = await db.collection('users').doc(userId).get();
-        if (userDoc.exists) {
-            const userData = userDoc.data();
-            alert(`User Details:\n\nEmail: ${userData.email || 'N/A'}\nID: ${userId}\nDeposit Balance: $${userData.depositBalance || 0}\nEarnings: $${userData.taskEarnings || 0}`);
-        } else {
-            alert('User not found');
+        // Load all deposits
+        async function loadAllDeposits() {
+            try {
+                const depositList = document.getElementById('deposit-list');
+                depositList.innerHTML = '<div class="card loading">Loading deposits...</div>';
+                
+                const snapshot = await rdb.ref('deposits').orderByChild('timestamp').once('value');
+                allDeposits = [];
+                
+                if (snapshot.exists()) {
+                    snapshot.forEach(child => {
+                        const deposit = child.val();
+                        deposit.key = child.key;
+                        allDeposits.push(deposit);
+                    });
+                }
+                
+                // Sort by timestamp descending
+                allDeposits.sort((a, b) => b.timestamp - a.timestamp);
+                
+                updateDepositStats();
+                displayDeposits(currentDepositPage);
+                setupDepositPagination();
+            } catch (error) {
+                console.error('Error loading deposits:', error);
+                document.getElementById('deposit-list').innerHTML = '<div class="card">Error loading deposits</div>';
+            }
         }
-    } catch (error) {
-        console.error('Error viewing user:', error);
-        alert('Error loading user details');
-    }
-}
 
-// Logout function
-function logout() {
-    auth.signOut().then(() => {
-        window.location.href = 'sign.html';
-    });
-}
+        // Display deposits with pagination
+        function displayDeposits(page) {
+            currentDepositPage = page;
+            const depositList = document.getElementById('deposit-list');
+            depositList.innerHTML = '';
+            
+            const startIndex = (page - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const depositsToDisplay = allDeposits.slice(startIndex, endIndex);
+            
+            if (depositsToDisplay.length === 0) {
+                depositList.innerHTML = '<div class="card">No deposits found</div>';
+                return;
+            }
+            
+            depositsToDisplay.forEach(deposit => {
+                const date = new Date(deposit.timestamp);
+                const userEmail = deposit.userEmail || 'N/A';
+                
+                const div = document.createElement('div');
+                div.className = 'deposit-item';
+                div.innerHTML = `
+                    <div class="user-email">${userEmail}</div>
+                    <div class="user-id">ID: ${deposit.userId}</div>
+                    <div class="user-date">${date.toLocaleString()}</div>
+                    <div class="user-balance">
+                        <div class="balance-row">
+                            <span>Amount:</span>
+                            <span>$${deposit.amount} USDT</span>
+                        </div>
+                        <div class="balance-row">
+                            <span>Status:</span>
+                            <span style="color: ${deposit.status === 'approved' ? 'var(--success)' : 
+                                              deposit.status === 'rejected' ? 'var(--danger)' : 'var(--warning)'}">
+                                ${deposit.status || 'pending'}
+                            </span>
+                        </div>
+                        <div class="balance-row">
+                            <span>TX Hash:</span>
+                            <span>${deposit.transactionHash || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        ${deposit.proofImage ? `
+                        <button class="btn btn-primary" onclick="showImage('${deposit.proofImage}')">
+                            <i class="fas fa-image"></i> View Proof
+                        </button>` : ''}
+                        ${deposit.status === 'pending' ? `
+                        <button class="btn btn-success" onclick="approveDeposit('${deposit.key}', '${deposit.userId}', ${deposit.amount})">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button class="btn btn-danger" onclick="rejectDeposit('${deposit.key}')">
+                            <i class="fas fa-times"></i> Reject
+                        </button>` : ''}
+                    </div>
+                `;
+                depositList.appendChild(div);
+            });
+        }
 
-// Tab switching
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    document.getElementById(tabId).classList.add('active');
-    event.target.classList.add('active');
-}
+        // Setup deposit pagination
+        function setupDepositPagination() {
+            const pagination = document.getElementById('deposit-pagination');
+            pagination.innerHTML = '';
+            
+            const totalPages = Math.ceil(allDeposits.length / itemsPerPage);
+            
+            if (totalPages <= 1) return;
+            
+            // Previous button
+            if (currentDepositPage > 1) {
+                const prevBtn = document.createElement('button');
+                prevBtn.className = 'page-btn';
+                prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                prevBtn.onclick = () => displayDeposits(currentDepositPage - 1);
+                pagination.appendChild(prevBtn);
+            }
+            
+            // Page buttons
+            for (let i = 1; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = `page-btn ${i === currentDepositPage ? 'active' : ''}`;
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => displayDeposits(i);
+                pagination.appendChild(pageBtn);
+            }
+            
+            // Next button
+            if (currentDepositPage < totalPages) {
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'page-btn';
+                nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                nextBtn.onclick = () => displayDeposits(currentDepositPage + 1);
+                pagination.appendChild(nextBtn);
+            }
+        }
+
+        // Load all withdrawals
+        async function loadAllWithdrawals() {
+            try {
+                const withdrawalList = document.getElementById('withdrawal-list');
+                withdrawalList.innerHTML = '<div class="card loading">Loading withdrawals...</div>';
+                
+                const snapshot = await rdb.ref('withdrawals').orderByChild('timestamp').once('value');
+                allWithdrawals = [];
+                
+                if (snapshot.exists()) {
+                    snapshot.forEach(child => {
+                        const withdrawal = child.val();
+                        withdrawal.key = child.key;
+                        allWithdrawals.push(withdrawal);
+                    });
+                }
+                
+                // Sort by timestamp descending
+                allWithdrawals.sort((a, b) => b.timestamp - a.timestamp);
+                
+                updateWithdrawalStats();
+                displayWithdrawals(currentWithdrawalPage);
+                setupWithdrawalPagination();
+            } catch (error) {
+                console.error('Error loading withdrawals:', error);
+                document.getElementById('withdrawal-list').innerHTML = '<div class="card">Error loading withdrawals</div>';
+            }
+        }
+
+        // Display withdrawals with pagination
+        function displayWithdrawals(page) {
+            currentWithdrawalPage = page;
+            const withdrawalList = document.getElementById('withdrawal-list');
+            withdrawalList.innerHTML = '';
+            
+            const startIndex = (page - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const withdrawalsToDisplay = allWithdrawals.slice(startIndex, endIndex);
+            
+            if (withdrawalsToDisplay.length === 0) {
+                withdrawalList.innerHTML = '<div class="card">No withdrawals found</div>';
+                return;
+            }
+            
+            withdrawalsToDisplay.forEach(withdrawal => {
+                const date = new Date(withdrawal.timestamp);
+                const userEmail = withdrawal.userEmail || 'N/A';
+                
+                const div = document.createElement('div');
+                div.className = 'withdrawal-item';
+                div.innerHTML = `
+                    <div class="user-email">${userEmail}</div>
+                    <div class="user-id">ID: ${withdrawal.userId}</div>
+                    <div class="user-date">${date.toLocaleString()}</div>
+                    <div class="user-balance">
+                        <div class="balance-row">
+                            <span>Amount:</span>
+                            <span>$${withdrawal.amount} USDT</span>
+                        </div>
+                        <div class="balance-row">
+                            <span>Status:</span>
+                            <span style="color: ${withdrawal.status === 'approved' ? 'var(--success)' : 
+                                                withdrawal.status === 'rejected' ? 'var(--danger)' : 'var(--warning)'}">
+                                ${withdrawal.status || 'pending'}
+                            </span>
+                        </div>
+                        <div class="balance-row">
+                            <span>Wallet:</span>
+                            <span>${withdrawal.walletAddress || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        ${withdrawal.status === 'pending' ? `
+                        <button class="btn btn-success" onclick="approveWithdrawal('${withdrawal.key}', '${withdrawal.userId}', ${withdrawal.amount})">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button class="btn btn-danger" onclick="rejectWithdrawal('${withdrawal.key}')">
+                            <i class="fas fa-times"></i> Reject
+                        </button>` : ''}
+                    </div>
+                `;
+                withdrawalList.appendChild(div);
+            });
+        }
+
+        // Setup withdrawal pagination
+        function setupWithdrawalPagination() {
+            const pagination = document.getElementById('withdrawal-pagination');
+            pagination.innerHTML = '';
+            
+            const totalPages = Math.ceil(allWithdrawals.length / itemsPerPage);
+            
+            if (totalPages <= 1) return;
+            
+            // Previous button
+            if (currentWithdrawalPage > 1) {
+                const prevBtn = document.createElement('button');
+                prevBtn.className = 'page-btn';
+                prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                prevBtn.onclick = () => displayWithdrawals(currentWithdrawalPage - 1);
+                pagination.appendChild(prevBtn);
+            }
+            
+            // Page buttons
+            for (let i = 1; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = `page-btn ${i === currentWithdrawalPage ? 'active' : ''}`;
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => displayWithdrawals(i);
+                pagination.appendChild(pageBtn);
+            }
+            
+            // Next button
+            if (currentWithdrawalPage < totalPages) {
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'page-btn';
+                nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                nextBtn.onclick = () => displayWithdrawals(currentWithdrawalPage + 1);
+                pagination.appendChild(nextBtn);
+            }
+        }
+
+        // Load statistics
+        async function loadStatistics() {
+            updateUserStats();
+            updateDepositStats();
+            updateWithdrawalStats();
+            loadRecentActivity();
+        }
+
+        // Update user statistics
+        function updateUserStats() {
+            const totalUsers = allUsers.length;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const newToday = allUsers.filter(user => {
+                const userDate = user.createdAt?.toDate() || new Date(0);
+                return userDate >= today;
+            }).length;
+            
+            const activeToday = allUsers.filter(user => {
+                const lastLogin = user.lastLogin?.toDate() || new Date(0);
+                return lastLogin >= today;
+            }).length;
+            
+            const totalDeposits = allUsers.reduce((sum, user) => sum + (user.depositBalance || 0), 0);
+            const totalEarnings = allUsers.reduce((sum, user) => sum + (user.taskEarnings || 0), 0);
+            const totalReferrals = allUsers.reduce((sum, user) => sum + (user.invitedUsers?.length || 0), 0);
+            
+            document.getElementById('total-users').textContent = totalUsers;
+            document.getElementById('active-users').textContent = activeToday;
+            document.getElementById('total-deposits').textContent = `$${totalDeposits.toFixed(2)}`;
+            document.getElementById('total-earnings').textContent = `$${totalEarnings.toFixed(2)}`;
+            
+            document.getElementById('stats-total-users').textContent = totalUsers;
+            document.getElementById('new-users-today').textContent = newToday;
+            document.getElementById('stats-active-users').textContent = activeToday;
+            document.getElementById('total-referrals').textContent = totalReferrals;
+        }
+
+        // Update deposit statistics
+        function updateDepositStats() {
+            const pendingDeposits = allDeposits.filter(d => d.status === 'pending').length;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const approvedToday = allDeposits.filter(d => 
+                d.status === 'approved' && new Date(d.timestamp) >= today
+            ).length;
+            
+            const totalApproved = allDeposits
+                .filter(d => d.status === 'approved')
+                .reduce((sum, d) => sum + parseFloat(d.amount), 0);
+            
+            const averageDeposit = allDeposits.length > 0 ? 
+                totalApproved / allDeposits.filter(d => d.status === 'approved').length : 0;
+            
+            document.getElementById('pending-deposits').textContent = pendingDeposits;
+            document.getElementById('approved-deposits-today').textContent = approvedToday;
+            document.getElementById('total-approved-deposits').textContent = `$${totalApproved.toFixed(2)}`;
+            document.getElementById('average-deposit').textContent = `$${averageDeposit.toFixed(2)}`;
+            
+            document.getElementById('stats-total-deposits').textContent = `$${totalApproved.toFixed(2)}`;
+            
+            const depositsToday = allDeposits
+                .filter(d => d.status === 'approved' && new Date(d.timestamp) >= today)
+                .reduce((sum, d) => sum + parseFloat(d.amount), 0);
+            
+            document.getElementById('deposits-today').textContent = `$${depositsToday.toFixed(2)}`;
+        }
+
+        // Update withdrawal statistics
+        function updateWithdrawalStats() {
+            const pendingWithdrawals = allWithdrawals.filter(w => w.status === 'pending').length;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const approvedToday = allWithdrawals.filter(w => 
+                w.status === 'approved' && new Date(w.timestamp) >= today
+            ).length;
+            
+            const totalApproved = allWithdrawals
+                .filter(w => w.status === 'approved')
+                .reduce((sum, w) => sum + parseFloat(w.amount), 0);
+            
+            const averageWithdrawal = allWithdrawals.length > 0 ? 
+                totalApproved / allWithdrawals.filter(w => w.status === 'approved').length : 0;
+            
+            document.getElementById('pending-withdrawals').textContent = pendingWithdrawals;
+            document.getElementById('approved-withdrawals-today').textContent = approvedToday;
+            document.getElementById('total-approved-withdrawals').textContent = `$${totalApproved.toFixed(2)}`;
+            document.getElementById('average-withdrawal').textContent = `$${averageWithdrawal.toFixed(2)}`;
+            
+            document.getElementById('stats-total-withdrawals').textContent = `$${totalApproved.toFixed(2)}`;
+            
+            const withdrawalsToday = allWithdrawals
+                .filter(w => w.status === 'approved' && new Date(w.timestamp) >= today)
+                .reduce((sum, w) => sum + parseFloat(w.amount), 0);
+            
+            document.getElementById('withdrawals-today').textContent = `$${withdrawalsToday.toFixed(2)}`;
+        }
+
+        // Load recent activity
+        function loadRecentActivity() {
+            const recentActivity = document.getElementById('recent-activity');
+            recentActivity.innerHTML = '';
+            
+            // Combine deposits and withdrawals
+            const allActivities = [...allDeposits, ...allWithdrawals]
+                .map(item => ({
+                    ...item,
+                    type: item.amount ? (item.walletAddress ? 'withdrawal' : 'deposit') : 'unknown'
+                }))
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .slice(0, 10);
+            
+            if (allActivities.length === 0) {
+                recentActivity.innerHTML = '<div class="card">No recent activity</div>';
+                return;
+            }
+            
+            allActivities.forEach(activity => {
+                const date = new Date(activity.timestamp);
+                const userEmail = activity.userEmail || 'N/A';
+                const isDeposit = activity.type === 'deposit';
+                
+                const activityItem = document.createElement('div');
+                activityItem.className = 'user-item';
+                activityItem.innerHTML = `
+                    <div class="user-email">${userEmail}</div>
+                    <div class="user-id">ID: ${activity.userId}</div>
+                    <div class="user-date">${date.toLocaleString()}</div>
+                    <div class="user-balance">
+                        <div class="balance-row">
+                            <span>Type:</span>
+                            <span>${isDeposit ? 'Deposit' : 'Withdrawal'}</span>
+                        </div>
+                        <div class="balance-row">
+                            <span>Amount:</span>
+                            <span>$${activity.amount} USDT</span>
+                        </div>
+                        <div class="balance-row">
+                            <span>Status:</span>
+                            <span style="color: ${activity.status === 'approved' ? 'var(--success)' : 
+                                              activity.status === 'rejected' ? 'var(--danger)' : 'var(--warning)'}">
+                                ${activity.status || 'pending'}
+                            </span>
+                        </div>
+                        ${isDeposit ? `
+                        <div class="balance-row">
+                            <span>TX Hash:</span>
+                            <span>${activity.transactionHash || 'N/A'}</span>
+                        </div>` : `
+                        <div class="balance-row">
+                            <span>Wallet:</span>
+                            <span>${activity.walletAddress || 'N/A'}</span>
+                        </div>`}
+                    </div>
+                `;
+                recentActivity.appendChild(activityItem);
+            });
+        }
+
+        // Search users
+        async function searchUsers() {
+            const searchTerm = document.getElementById('user-search').value.trim().toLowerCase();
+            
+            if (!searchTerm) {
+                displayUsers(currentUserPage);
+                return;
+            }
+            
+            const filteredUsers = allUsers.filter(user => 
+                (user.email && user.email.toLowerCase().includes(searchTerm)) ||
+                user.id.toLowerCase().includes(searchTerm) ||
+                (user.referralCode && user.referralCode.toLowerCase().includes(searchTerm))
+            );
+            
+            // Temporarily replace allUsers with filtered results
+            const originalUsers = allUsers;
+            allUsers = filteredUsers;
+            
+            displayUsers(1);
+            setupUserPagination();
+            
+            // Restore original users array
+            allUsers = originalUsers;
+        }
+
+        // Search deposits
+        async function searchDeposits() {
+            const searchTerm = document.getElementById('deposit-search').value.trim().toLowerCase();
+            
+            if (!searchTerm) {
+                displayDeposits(currentDepositPage);
+                return;
+            }
+            
+            const filteredDeposits = allDeposits.filter(deposit => 
+                (deposit.userEmail && deposit.userEmail.toLowerCase().includes(searchTerm)) ||
+                (deposit.userId && deposit.userId.toLowerCase().includes(searchTerm)) ||
+                (deposit.transactionHash && deposit.transactionHash.toLowerCase().includes(searchTerm))
+            );
+            
+            // Temporarily replace allDeposits with filtered results
+            const originalDeposits = allDeposits;
+            allDeposits = filteredDeposits;
+            
+            displayDeposits(1);
+            setupDepositPagination();
+            
+            // Restore original deposits array
+            allDeposits = originalDeposits;
+        }
+
+        // Search withdrawals
+        async function searchWithdrawals() {
+            const searchTerm = document.getElementById('withdrawal-search').value.trim().toLowerCase();
+            
+            if (!searchTerm) {
+                displayWithdrawals(currentWithdrawalPage);
+                return;
+            }
+            
+            const filteredWithdrawals = allWithdrawals.filter(withdrawal => 
+                (withdrawal.userEmail && withdrawal.userEmail.toLowerCase().includes(searchTerm)) ||
+                (withdrawal.userId && withdrawal.userId.toLowerCase().includes(searchTerm)) ||
+                (withdrawal.walletAddress && withdrawal.walletAddress.toLowerCase().includes(searchTerm))
+            );
+            
+            // Temporarily replace allWithdrawals with filtered results
+            const originalWithdrawals = allWithdrawals;
+            allWithdrawals = filteredWithdrawals;
+            
+            displayWithdrawals(1);
+            setupWithdrawalPagination();
+            
+            // Restore original withdrawals array
+            allWithdrawals = originalWithdrawals;
+        }
+
+        // Show image in modal
+        function showImage(imageUrl) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.onclick = function() {
+                document.body.removeChild(modal);
+            };
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'modal-content';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'modal-close';
+            closeBtn.innerHTML = '&times;';
+            closeBtn.onclick = function(e) {
+                e.stopPropagation();
+                document.body.removeChild(modal);
+            };
+            
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.className = 'proof-image';
+            
+            modalContent.appendChild(closeBtn);
+            modalContent.appendChild(img);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+        }
+
+        // Approve deposit
+        async function approveDeposit(depositId, userId, amount) {
+            if (!confirm(`Approve $${amount} deposit for user ${userId}?`)) return;
+            
+            try {
+                // Update user balance in Firestore
+                await db.collection('users').doc(userId).update({
+                    depositBalance: firebase.firestore.FieldValue.increment(amount)
+                });
+                
+                // Update deposit status in Realtime DB
+                await rdb.ref(`deposits/${depositId}`).update({
+                    status: 'approved',
+                    processedAt: Date.now(),
+                    processedBy: currentAdmin.uid
+                });
+                
+                alert('Deposit approved successfully!');
+                loadAllDeposits();
+                loadAllUsers();
+                loadStatistics();
+            } catch (error) {
+                console.error('Error approving deposit:', error);
+                alert('Failed to approve deposit');
+            }
+        }
+
+        // Reject deposit
+        async function rejectDeposit(depositId) {
+            if (!confirm('Reject this deposit?')) return;
+            
+            try {
+                await rdb.ref(`deposits/${depositId}`).update({
+                    status: 'rejected',
+                    processedAt: Date.now(),
+                    processedBy: currentAdmin.uid
+                });
+                alert('Deposit rejected');
+                loadAllDeposits();
+                loadStatistics();
+            } catch (error) {
+                console.error('Error rejecting deposit:', error);
+                alert('Failed to reject deposit');
+            }
+        }
+
+        // Approve withdrawal
+        async function approveWithdrawal(withdrawalId, userId, amount) {
+            if (!confirm(`Approve $${amount} withdrawal for user ${userId}?`)) return;
+            
+            try {
+                // Update user balance in Firestore
+                await db.collection('users').doc(userId).update({
+                    taskEarnings: firebase.firestore.FieldValue.increment(-amount)
+                });
+                
+                // Update withdrawal status in Realtime DB
+                await rdb.ref(`withdrawals/${withdrawalId}`).update({
+                    status: 'approved',
+                    processedAt: Date.now(),
+                    processedBy: currentAdmin.uid
+                });
+                
+                alert('Withdrawal approved successfully!');
+                loadAllWithdrawals();
+                loadAllUsers();
+                loadStatistics();
+            } catch (error) {
+                console.error('Error approving withdrawal:', error);
+                alert('Failed to approve withdrawal');
+            }
+        }
+
+        // Reject withdrawal
+        async function rejectWithdrawal(withdrawalId) {
+            if (!confirm('Reject this withdrawal?')) return;
+            
+            try {
+                await rdb.ref(`withdrawals/${withdrawalId}`).update({
+                    status: 'rejected',
+                    processedAt: Date.now(),
+                    processedBy: currentAdmin.uid
+                });
+                alert('Withdrawal rejected');
+                loadAllWithdrawals();
+                loadStatistics();
+            } catch (error) {
+                console.error('Error rejecting withdrawal:', error);
+                alert('Failed to reject withdrawal');
+            }
+        }
+
+        // View user details
+        async function viewUser(userId) {
+            try {
+                const userDoc = await db.collection('users').doc(userId).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    const createdAt = userData.createdAt?.toDate() || new Date();
+                    const lastLogin = userData.lastLogin?.toDate() || null;
+                    
+                    let message = `User Details:\n\nEmail: ${userData.email || 'N/A'}\nID: ${userId}\n`;
+                    message += `Joined: ${createdAt.toLocaleString()}\n`;
+                    if (lastLogin) message += `Last Login: ${lastLogin.toLocaleString()}\n`;
+                    message += `\nBalances:\n`;
+                    message += `Deposit: $${userData.depositBalance || 0}\n`;
+                    message += `Earnings: $${userData.taskEarnings || 0}\n`;
+                    message += `Points: ${userData.points || 0}\n\n`;
+                    message += `Referral Info:\n`;
+                    message += `Referral Code: ${userData.referralCode || userId}\n`;
+                    message += `Referred By: ${userData.referredBy || 'None'}\n`;
+                    message += `Total Referrals: ${userData.invitedUsers?.length || 0}`;
+                    
+                    alert(message);
+                } else {
+                    alert('User not found');
+                }
+            } catch (error) {
+                console.error('Error viewing user:', error);
+                alert('Error loading user details');
+            }
+        }
+
+        // Edit user
+        async function editUser(userId) {
+            try {
+                const userDoc = await db.collection('users').doc(userId).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    
+                    const newDeposit = prompt('Enter new deposit balance:', userData.depositBalance || 0);
+                    if (newDeposit === null) return;
+                    
+                    const newEarnings = prompt('Enter new earnings balance:', userData.taskEarnings || 0);
+                    if (newEarnings === null) return;
+                    
+                    const newPoints = prompt('Enter new points balance:', userData.points || 0);
+                    if (newPoints === null) return;
+                    
+                    await db.collection('users').doc(userId).update({
+                        depositBalance: parseFloat(newDeposit) || 0,
+                        taskEarnings: parseFloat(newEarnings) || 0,
+                        points: parseInt(newPoints) || 0
+                    });
+                    
+                    alert('User balances updated successfully!');
+                    loadAllUsers();
+                    loadStatistics();
+                } else {
+                    alert('User not found');
+                }
+            } catch (error) {
+                console.error('Error editing user:', error);
+                alert('Error updating user details');
+            }
+        }
+
+        // Logout function
+        function logout() {
+            auth.signOut().then(() => {
+                window.location.href = 'sign.html';
+            });
+        }
+
+        // Tab switching
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Refresh data when switching to certain tabs
+            if (tabId === 'stats') {
+                loadStatistics();
+            }
+        }
     </script>
 </body>
 </html>
