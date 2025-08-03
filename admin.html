@@ -218,7 +218,7 @@
             background: white;
             padding: 20px;
             border-radius: 5px;
-            max-width: 90%;
+            max-width: 500px;
             max-height: 90%;
             overflow: auto;
             position: relative;
@@ -289,6 +289,58 @@
             color: #7f8c8d;
             font-size: 14px;
         }
+        
+        /* Balance Management Form */
+        .balance-form {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .user-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .user-selector input {
+            flex: 1;
+        }
+        
+        .balance-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -304,6 +356,7 @@
             <div class="tab active" onclick="switchTab('users')"><i class="fas fa-users"></i> Users</div>
             <div class="tab" onclick="switchTab('deposits')"><i class="fas fa-money-bill-wave"></i> Deposits</div>
             <div class="tab" onclick="switchTab('withdrawals')"><i class="fas fa-hand-holding-usd"></i> Withdrawals</div>
+            <div class="tab" onclick="switchTab('balance')"><i class="fas fa-wallet"></i> Balance Management</div>
             <div class="tab" onclick="switchTab('stats')"><i class="fas fa-chart-bar"></i> Statistics</div>
         </div>
         
@@ -392,6 +445,71 @@
                 <div class="card loading">Loading withdrawals...</div>
             </div>
             <div class="pagination" id="withdrawal-pagination"></div>
+        </div>
+        
+        <!-- Balance Management Tab -->
+        <div id="balance" class="tab-content">
+            <div class="card">
+                <h2>User Balance Management</h2>
+                <div class="balance-form">
+                    <div class="form-group">
+                        <label>Find User</label>
+                        <div class="user-selector">
+                            <input type="text" id="user-identifier" placeholder="Enter user ID or email">
+                            <button class="btn btn-primary" onclick="findUser()">Find</button>
+                        </div>
+                    </div>
+                    
+                    <div id="user-info" style="display: none;">
+                        <div class="form-group">
+                            <label>User Email</label>
+                            <input type="text" id="user-email" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>User ID</label>
+                            <input type="text" id="user-id" readonly>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Balance Type</label>
+                            <select id="balance-type">
+                                <option value="depositBalance">Deposit Balance</option>
+                                <option value="taskEarnings">Earnings Balance</option>
+                                <option value="points">Points</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Action</label>
+                            <select id="balance-action">
+                                <option value="add">Add Amount</option>
+                                <option value="subtract">Subtract Amount</option>
+                                <option value="set">Set Exact Amount</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Amount</label>
+                            <input type="number" id="balance-amount" placeholder="Enter amount" step="0.01">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Notes (Optional)</label>
+                            <input type="text" id="balance-notes" placeholder="Enter notes for this transaction">
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button class="btn btn-success" onclick="updateUserBalance()">Update Balance</button>
+                            <button class="btn btn-danger" onclick="resetBalanceForm()">Reset</button>
+                        </div>
+                    </div>
+                    
+                    <div id="balance-result" class="balance-result">
+                        <div id="balance-result-message"></div>
+                        <div id="balance-new-values"></div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- Statistics Tab -->
@@ -573,6 +691,9 @@
                         </button>
                         <button class="btn btn-warning" onclick="editUser('${userData.id}')">
                             <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-info" onclick="manageBalance('${userData.id}', '${userEmail}')">
+                            <i class="fas fa-wallet"></i> Balance
                         </button>
                     </div>
                 `;
@@ -1289,6 +1410,149 @@
                 console.error('Error editing user:', error);
                 alert('Error updating user details');
             }
+        }
+
+        // Manage user balance from user list
+        function manageBalance(userId, userEmail) {
+            switchTab('balance');
+            document.getElementById('user-identifier').value = userId;
+            document.getElementById('user-email').value = userEmail;
+            document.getElementById('user-id').value = userId;
+            document.getElementById('user-info').style.display = 'block';
+        }
+
+        // Find user for balance management
+        async function findUser() {
+            const identifier = document.getElementById('user-identifier').value.trim();
+            if (!identifier) {
+                alert('Please enter a user ID or email');
+                return;
+            }
+            
+            try {
+                let userDoc;
+                
+                // Check if it's an email
+                if (identifier.includes('@')) {
+                    const querySnapshot = await db.collection('users').where('email', '==', identifier).get();
+                    if (querySnapshot.empty) {
+                        alert('User not found with this email');
+                        return;
+                    }
+                    userDoc = querySnapshot.docs[0];
+                } 
+                // Otherwise treat as user ID
+                else {
+                    userDoc = await db.collection('users').doc(identifier).get();
+                    if (!userDoc.exists) {
+                        alert('User not found with this ID');
+                        return;
+                    }
+                }
+                
+                const userData = userDoc.data();
+                document.getElementById('user-email').value = userData.email || 'N/A';
+                document.getElementById('user-id').value = userDoc.id;
+                document.getElementById('user-info').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error finding user:', error);
+                alert('Error finding user. Please try again.');
+            }
+        }
+
+        // Update user balance
+        async function updateUserBalance() {
+            const userId = document.getElementById('user-id').value;
+            const balanceType = document.getElementById('balance-type').value;
+            const action = document.getElementById('balance-action').value;
+            const amount = parseFloat(document.getElementById('balance-amount').value);
+            const notes = document.getElementById('balance-notes').value;
+            
+            if (!userId) {
+                alert('Please find a user first');
+                return;
+            }
+            
+            if (isNaN(amount) {
+                alert('Please enter a valid amount');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to ${action} ${amount} to ${balanceType} for this user?`)) {
+                return;
+            }
+            
+            try {
+                const userRef = db.collection('users').doc(userId);
+                let updateData = {};
+                
+                // Determine the update operation based on action
+                if (action === 'add') {
+                    updateData[balanceType] = firebase.firestore.FieldValue.increment(amount);
+                } else if (action === 'subtract') {
+                    updateData[balanceType] = firebase.firestore.FieldValue.increment(-amount);
+                } else if (action === 'set') {
+                    updateData[balanceType] = amount;
+                }
+                
+                // Add admin note if provided
+                if (notes) {
+                    updateData.adminNotes = firebase.firestore.FieldValue.arrayUnion({
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        adminId: currentAdmin.uid,
+                        action: `${action} ${amount} to ${balanceType}`,
+                        notes: notes
+                    });
+                }
+                
+                // Update the user's balance
+                await userRef.update(updateData);
+                
+                // Show success message with new values
+                const userDoc = await userRef.get();
+                const userData = userDoc.data();
+                
+                document.getElementById('balance-result-message').innerHTML = 
+                    `<strong>Balance updated successfully!</strong>`;
+                
+                document.getElementById('balance-new-values').innerHTML = `
+                    <div class="balance-row">
+                        <span>New Deposit Balance:</span>
+                        <span>$${(userData.depositBalance || 0).toFixed(2)}</span>
+                    </div>
+                    <div class="balance-row">
+                        <span>New Earnings Balance:</span>
+                        <span>$${(userData.taskEarnings || 0).toFixed(2)}</span>
+                    </div>
+                    <div class="balance-row">
+                        <span>New Points:</span>
+                        <span>${userData.points || 0}</span>
+                    </div>
+                `;
+                
+                document.getElementById('balance-result').style.display = 'block';
+                
+                // Refresh user list
+                loadAllUsers();
+                
+            } catch (error) {
+                console.error('Error updating balance:', error);
+                alert('Error updating balance. Please try again.');
+            }
+        }
+
+        // Reset balance form
+        function resetBalanceForm() {
+            document.getElementById('user-identifier').value = '';
+            document.getElementById('user-email').value = '';
+            document.getElementById('user-id').value = '';
+            document.getElementById('balance-type').value = 'depositBalance';
+            document.getElementById('balance-action').value = 'add';
+            document.getElementById('balance-amount').value = '';
+            document.getElementById('balance-notes').value = '';
+            document.getElementById('user-info').style.display = 'none';
+            document.getElementById('balance-result').style.display = 'none';
         }
 
         // Logout function
