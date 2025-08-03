@@ -1,14 +1,29 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Withdraw - VideoCall</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary: #007bff;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --dark: #343a40;
+            --light: #f8f9fa;
+        }
+        
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 20px;
             background-color: #f4f4f4;
+            color: #333;
         }
+        
         .container {
             max-width: 600px;
             margin: 0 auto;
@@ -17,143 +32,185 @@
             border-radius: 8px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
         }
-        h1 {
+        
+        h1, h2, h3 {
             color: #333;
+            margin-top: 0;
+        }
+        
+        h1 {
             text-align: center;
             margin-bottom: 30px;
         }
+        
         .balance-card {
-            background-color: #17a2b8;
+            background-color: var(--info);
             color: white;
             padding: 20px;
             border-radius: 8px;
             text-align: center;
             margin: 20px 0;
         }
+        
         .balance-amount {
             font-size: 36px;
             font-weight: bold;
             margin: 10px 0;
         }
-        .withdraw-form {
+        
+        .form-section {
             margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 8px;
         }
+        
         .form-group {
             margin-bottom: 15px;
         }
+        
         label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
         }
+        
         input, select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
             box-sizing: border-box;
+            font-size: 16px;
         }
-        .submit-btn {
-            width: 100%;
-            padding: 12px;
-            background-color: #007bff;
-            color: white;
+        
+        .btn {
+            display: inline-block;
+            padding: 10px 15px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
-            margin-top: 10px;
+            text-align: center;
+            transition: all 0.3s;
         }
-        .submit-btn:hover {
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
             background-color: #0069d9;
         }
-        .submit-btn:disabled {
+        
+        .btn-block {
+            display: block;
+            width: 100%;
+            padding: 12px;
+        }
+        
+        .btn:disabled {
             background-color: #6c757d;
             cursor: not-allowed;
         }
-        .history-section {
-            margin: 30px 0;
-        }
+        
         .history-item {
             padding: 15px;
             border-bottom: 1px solid #eee;
             display: flex;
             justify-content: space-between;
+            align-items: center;
         }
+        
         .history-amount {
             font-weight: bold;
-            color: #dc3545;
+            color: var(--danger);
         }
+        
         .history-date {
             color: #6c757d;
             font-size: 12px;
         }
-        .history-status {
+        
+        .badge {
             padding: 3px 8px;
             border-radius: 4px;
             font-size: 12px;
+            font-weight: bold;
         }
-        .status-pending {
-            background-color: #ffc107;
+        
+        .badge-pending {
+            background-color: var(--warning);
             color: #212529;
         }
-        .status-completed {
-            background-color: #28a745;
+        
+        .badge-success {
+            background-color: var(--success);
             color: white;
         }
-        .status-rejected {
-            background-color: #dc3545;
+        
+        .badge-danger {
+            background-color: var(--danger);
             color: white;
         }
+        
         .nav-menu {
             display: flex;
             justify-content: space-around;
             margin: 30px 0;
+            gap: 10px;
         }
+        
         .nav-btn {
             padding: 15px;
-            background-color: #f8f9fa;
+            background-color: var(--light);
             border-radius: 8px;
             text-align: center;
             cursor: pointer;
             flex: 1;
-            margin: 0 5px;
             transition: all 0.3s;
         }
+        
         .nav-btn:hover {
             background-color: #e9ecef;
             transform: translateY(-3px);
         }
+        
         .nav-btn i {
             font-size: 24px;
             margin-bottom: 10px;
-        }
-        .back-btn {
             display: block;
-            width: 100%;
-            padding: 10px;
-            background-color: #6c757d;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 20px;
-            text-align: center;
         }
-        .back-btn:hover {
-            background-color: #5a6268;
-        }
-        .note {
-            font-size: 12px;
+        
+        .text-muted {
             color: #6c757d;
+            font-size: 12px;
             margin-top: 5px;
         }
-        .min-amount {
-            color: #dc3545;
+        
+        .text-danger {
+            color: var(--danger);
             font-weight: bold;
         }
+        
+        .alert {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
@@ -161,31 +218,33 @@
         
         <div class="balance-card">
             <div>Available for Withdrawal</div>
-            <div class="balance-amount" id="withdraw-balance">0</div>
+            <div class="balance-amount" id="withdraw-balance">0.00</div>
             <div>USDT</div>
-            <div class="note">Minimum withdrawal: <span class="min-amount">15 USDT</span></div>
+            <div class="text-muted">Minimum withdrawal: <span class="text-danger">15 USDT</span></div>
         </div>
         
-        <div class="withdraw-form">
+        <div class="form-section">
             <h3>Withdraw Funds</h3>
             <div class="form-group">
                 <label for="withdraw-amount">Amount (USDT)</label>
-                <input type="number" id="withdraw-amount" placeholder="Enter amount (min 15 USDT)" min="15">
+                <input type="number" id="withdraw-amount" placeholder="Enter amount (min 15 USDT)" min="15" step="0.01">
             </div>
             <div class="form-group">
                 <label for="wallet-address">Your TRC20 Wallet Address</label>
                 <input type="text" id="wallet-address" placeholder="Enter your USDT (TRC20) wallet address">
             </div>
-            <button class="submit-btn" id="submit-withdraw" onclick="submitWithdrawal()">
+            <button class="btn btn-primary btn-block" id="submit-withdraw">
                 <i class="fas fa-paper-plane"></i> Request Withdrawal
             </button>
-            <p class="note">Withdrawals are processed within 24 hours. Please ensure your wallet address is correct.</p>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Withdrawals are processed within 24 hours. Please ensure your wallet address is correct.
+            </div>
         </div>
         
-        <div class="history-section">
+        <div class="form-section">
             <h3>Withdrawal History</h3>
             <div id="withdraw-history">
-                <div style="text-align: center; padding: 20px; color: #6c757d;">Loading...</div>
+                <div class="loading">Loading your withdrawal history...</div>
             </div>
         </div>
         
@@ -204,11 +263,12 @@
             </div>
         </div>
         
-        <button class="back-btn" onclick="window.location.href='home.html'">
+        <button class="btn btn-block" onclick="window.location.href='home.html'" style="background-color: #6c757d; color: white;">
             <i class="fas fa-arrow-left"></i> Back to Dashboard
         </button>
     </div>
 
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -246,6 +306,7 @@
             } else {
                 loadUserData(user.uid);
                 loadWithdrawalHistory(user.uid);
+                setupWithdrawalListener(user.uid);
             }
         });
 
@@ -255,16 +316,19 @@
                 .then((doc) => {
                     if (doc.exists) {
                         const userData = doc.data();
-                        // Calculate available balance from earnings only
                         const availableBalance = userData.taskEarnings || 0;
                         withdrawBalanceEl.textContent = availableBalance.toFixed(2);
                         
                         // Disable submit button if balance is less than minimum
-                        if (availableBalance < 15) {
-                            submitWithdrawBtn.disabled = true;
+                        submitWithdrawBtn.disabled = availableBalance < 15;
+                        if (submitWithdrawBtn.disabled) {
                             submitWithdrawBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Insufficient Balance';
                         }
                     }
+                })
+                .catch((error) => {
+                    console.error("Error loading user data:", error);
+                    showAlert('Error loading your balance. Please refresh the page.', 'danger');
                 });
         }
 
@@ -275,7 +339,7 @@
                     withdrawHistoryEl.innerHTML = '';
                     
                     if (!snapshot.exists()) {
-                        withdrawHistoryEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #6c757d;">No withdrawal history yet</div>';
+                        withdrawHistoryEl.innerHTML = '<div class="loading">No withdrawal history yet</div>';
                         return;
                     }
                     
@@ -294,14 +358,14 @@
                         const date = new Date(withdrawal.timestamp);
                         const formattedDate = date.toLocaleString();
                         
-                        let statusClass = 'status-pending';
+                        let statusClass = 'badge-pending';
                         let statusText = 'Pending';
                         
                         if (withdrawal.status === 'approved') {
-                            statusClass = 'status-completed';
+                            statusClass = 'badge-success';
                             statusText = 'Completed';
                         } else if (withdrawal.status === 'rejected') {
-                            statusClass = 'status-rejected';
+                            statusClass = 'badge-danger';
                             statusText = 'Rejected';
                         }
                         
@@ -313,12 +377,23 @@
                                 <div class="history-date">${formattedDate}</div>
                             </div>
                             <div>
-                                <span class="history-status ${statusClass}">${statusText}</span>
+                                <span class="badge ${statusClass}">${statusText}</span>
                             </div>
                         `;
                         withdrawHistoryEl.appendChild(historyItem);
                     });
+                })
+                .catch((error) => {
+                    console.error("Error loading withdrawal history:", error);
+                    withdrawHistoryEl.innerHTML = '<div class="loading">Error loading withdrawal history</div>';
                 });
+        }
+
+        // Setup realtime listener for withdrawal status changes
+        function setupWithdrawalListener(userId) {
+            rdb.ref('withdrawals').orderByChild('userId').equalTo(userId).on('value', (snapshot) => {
+                loadWithdrawalHistory(userId);
+            });
         }
 
         // Submit withdrawal request
@@ -327,13 +402,14 @@
             const walletAddress = walletAddressInput.value.trim();
             const user = auth.currentUser;
             
+            // Validation
             if (!amount || amount < 15) {
-                alert('Minimum withdrawal amount is 15 USDT');
+                showAlert('Minimum withdrawal amount is 15 USDT', 'danger');
                 return;
             }
             
             if (!walletAddress || walletAddress.length < 10) {
-                alert('Please enter a valid TRC20 wallet address');
+                showAlert('Please enter a valid TRC20 wallet address', 'danger');
                 return;
             }
             
@@ -343,21 +419,25 @@
             }
             
             // Check available balance
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (!userDoc.exists) {
-                alert('User data not found');
-                return;
-            }
-            
-            const userData = userDoc.data();
-            const availableBalance = userData.taskEarnings || 0;
-            
-            if (amount > availableBalance) {
-                alert('Insufficient balance for this withdrawal');
-                return;
-            }
-            
             try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists) {
+                    showAlert('User data not found', 'danger');
+                    return;
+                }
+                
+                const userData = userDoc.data();
+                const availableBalance = userData.taskEarnings || 0;
+                
+                if (amount > availableBalance) {
+                    showAlert('Insufficient balance for this withdrawal', 'danger');
+                    return;
+                }
+                
+                // Disable button during processing
+                submitWithdrawBtn.disabled = true;
+                submitWithdrawBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                
                 // Create withdrawal record in Realtime DB for admin approval
                 await rdb.ref('withdrawals').push({
                     userId: user.uid,
@@ -365,10 +445,12 @@
                     amount: amount,
                     walletAddress: walletAddress,
                     status: 'pending',
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    processedAt: null,
+                    processedBy: null
                 });
                 
-                alert('Withdrawal request submitted for admin approval!');
+                showAlert('Withdrawal request submitted for admin approval!', 'success');
                 
                 // Clear form
                 withdrawAmountInput.value = '';
@@ -376,13 +458,33 @@
                 
                 // Refresh data
                 loadUserData(user.uid);
-                loadWithdrawalHistory(user.uid);
                 
             } catch (error) {
                 console.error('Error submitting withdrawal:', error);
-                alert('Error submitting withdrawal. Please try again.');
+                showAlert('Error submitting withdrawal. Please try again.', 'danger');
+            } finally {
+                submitWithdrawBtn.disabled = false;
+                submitWithdrawBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Request Withdrawal';
             }
         }
+
+        // Show alert message
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.innerHTML = `<i class="fas fa-${type === 'danger' ? 'exclamation-triangle' : 'check-circle'}"></i> ${message}`;
+            
+            const formSection = document.querySelector('.form-section');
+            formSection.insertBefore(alertDiv, formSection.firstChild);
+            
+            // Remove alert after 5 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Event listeners
+        submitWithdrawBtn.addEventListener('click', submitWithdrawal);
     </script>
 </body>
 </html>
