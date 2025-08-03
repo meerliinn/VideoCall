@@ -437,7 +437,7 @@
         <!-- Deposits Tab -->
         <div id="deposits" class="tab-content">
             <div class="search-box">
-                <input type="text" id="deposit-search" placeholder="Search deposits by email or UID" onkeyup="searchDeposits()">
+                <input type="text" id="deposit-search" placeholder="Search deposits by email, UID or transaction hash" onkeyup="searchDeposits()">
             </div>
             <div class="user-list" id="deposit-list">
                 <div class="card full-width loading">Loading deposits...</div>
@@ -447,7 +447,7 @@
         <!-- Withdrawals Tab -->
         <div id="withdrawals" class="tab-content">
             <div class="search-box">
-                <input type="text" id="withdrawal-search" placeholder="Search withdrawals by email or UID" onkeyup="searchWithdrawals()">
+                <input type="text" id="withdrawal-search" placeholder="Search withdrawals by email, UID or wallet address" onkeyup="searchWithdrawals()">
             </div>
             <div class="user-list" id="withdrawal-list">
                 <div class="card full-width loading">Loading withdrawals...</div>
@@ -931,7 +931,7 @@
                 const depositList = document.getElementById('deposit-list');
                 depositList.innerHTML = '<div class="card full-width loading">Searching deposits...</div>';
                 
-                const snapshot = await rdb.ref('deposits').orderByChild('status').equalTo('pending').once('value');
+                const snapshot = await rdb.ref('deposits').once('value');
                 
                 if (!snapshot.exists()) {
                     depositList.innerHTML = '<div class="card full-width">No matching deposits</div>';
@@ -939,6 +939,7 @@
                 }
 
                 const deposits = [];
+                const filteredDeposits = [];
                 
                 // Convert snapshot to array and get emails
                 snapshot.forEach(child => {
@@ -949,13 +950,21 @@
                 });
 
                 // Process deposits with emails and filter
-                const filteredDeposits = [];
-                
                 for (const deposit of deposits) {
-                    deposit.userEmail = await getUserEmail(deposit.userId);
+                    // Get user email from cache or fetch it
+                    if (!usersCache[deposit.userId]) {
+                        const userDoc = await db.collection('users').doc(deposit.userId).get();
+                        if (userDoc.exists) {
+                            usersCache[deposit.userId] = userDoc.data();
+                        }
+                    }
                     
-                    if (deposit.userEmail.toLowerCase().includes(searchTerm) || 
-                        deposit.userId.toLowerCase().includes(searchTerm)) {
+                    const userEmail = usersCache[deposit.userId]?.email || 'no-email';
+                    
+                    if (userEmail.toLowerCase().includes(searchTerm) || 
+                        deposit.userId.toLowerCase().includes(searchTerm) ||
+                        deposit.transactionHash.toLowerCase().includes(searchTerm)) {
+                        deposit.userEmail = userEmail;
                         filteredDeposits.push(deposit);
                     }
                 }
@@ -1086,7 +1095,7 @@
                 const withdrawalList = document.getElementById('withdrawal-list');
                 withdrawalList.innerHTML = '<div class="card full-width loading">Searching withdrawals...</div>';
                 
-                const snapshot = await rdb.ref('withdrawals').orderByChild('status').equalTo('pending').once('value');
+                const snapshot = await rdb.ref('withdrawals').once('value');
                 
                 if (!snapshot.exists()) {
                     withdrawalList.innerHTML = '<div class="card full-width">No matching withdrawals</div>';
@@ -1094,6 +1103,7 @@
                 }
 
                 const withdrawals = [];
+                const filteredWithdrawals = [];
                 
                 // Convert snapshot to array and get emails
                 snapshot.forEach(child => {
@@ -1104,13 +1114,21 @@
                 });
 
                 // Process withdrawals with emails and filter
-                const filteredWithdrawals = [];
-                
                 for (const withdrawal of withdrawals) {
-                    withdrawal.userEmail = await getUserEmail(withdrawal.userId);
+                    // Get user email from cache or fetch it
+                    if (!usersCache[withdrawal.userId]) {
+                        const userDoc = await db.collection('users').doc(withdrawal.userId).get();
+                        if (userDoc.exists) {
+                            usersCache[withdrawal.userId] = userDoc.data();
+                        }
+                    }
                     
-                    if (withdrawal.userEmail.toLowerCase().includes(searchTerm) || 
-                        withdrawal.userId.toLowerCase().includes(searchTerm)) {
+                    const userEmail = usersCache[withdrawal.userId]?.email || 'no-email';
+                    
+                    if (userEmail.toLowerCase().includes(searchTerm) || 
+                        withdrawal.userId.toLowerCase().includes(searchTerm) ||
+                        withdrawal.walletAddress.toLowerCase().includes(searchTerm)) {
+                        withdrawal.userEmail = userEmail;
                         filteredWithdrawals.push(withdrawal);
                     }
                 }
