@@ -177,6 +177,18 @@
             font-weight: bold;
             color: #28a745;
         }
+        .copy-feedback {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            display: none;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" crossorigin="anonymous">
 </head>
@@ -257,9 +269,10 @@
         </button>
     </div>
 
-    <!-- Load Firebase scripts asynchronously -->
+    <div class="copy-feedback" id="copyFeedback"></div>
+
     <script>
-        // Load Firebase scripts dynamically
+        // Load Firebase scripts asynchronously
         function loadFirebase() {
             return new Promise((resolve) => {
                 const firebaseScripts = [
@@ -312,14 +325,42 @@
             const totalPointsEl = document.getElementById('totalPoints');
             const invitedUsersContainer = document.getElementById('invited-users-container');
             const invitedUsersList = document.getElementById('invited-users-list');
+            const copyFeedback = document.getElementById('copyFeedback');
 
             // Check authentication state
-            auth.onAuthStateChanged((user) => {
+            auth.onAuthStateChanged(async (user) => {
                 if (!user) {
                     window.location.href = 'sign.html';
                     return;
                 }
-                loadReferralData(user.uid);
+                
+                // Use UID as referral code
+                const referralCode = user.uid;
+                
+                // Update user document with referral code if not already set
+                try {
+                    const userRef = db.collection('users').doc(user.uid);
+                    const userDoc = await userRef.get();
+                    
+                    if (!userDoc.exists) {
+                        // Create user document if it doesn't exist
+                        await userRef.set({
+                            referralCode: referralCode,
+                            points: 0,
+                            invitedUsers: []
+                        }, { merge: true });
+                    } else if (!userDoc.data().referralCode) {
+                        // Update existing user document if referralCode is missing
+                        await userRef.update({
+                            referralCode: referralCode
+                        });
+                    }
+                    
+                    // Load referral data
+                    loadReferralData(user.uid);
+                } catch (error) {
+                    console.error("Error setting up referral code:", error);
+                }
             });
 
             // Load user referral data
@@ -329,16 +370,13 @@
                     if (userDoc.exists) {
                         const userData = userDoc.data();
                         
-                        // Set referral code and link
-                        referralCodeInput.value = userData.referralCode || '';
-                        referralLinkInput.value = 
-                            `${window.location.origin}/sign.html?ref=${userData.referralCode || ''}`;
+                        // Set referral code (using UID) and link
+                        referralCodeInput.value = userId;
+                        referralLinkInput.value = `${window.location.origin}/sign.html?ref=${userId}`;
                         
                         // Update stats
-                        totalReferralsEl.textContent = 
-                            userData.invitedUsers ? userData.invitedUsers.length : 0;
-                        totalPointsEl.textContent = 
-                            userData.points || 0;
+                        totalReferralsEl.textContent = userData.invitedUsers ? userData.invitedUsers.length : 0;
+                        totalPointsEl.textContent = userData.points || 0;
                         
                         // Display invited users
                         displayInvitedUsers(userData.invitedUsers || []);
@@ -371,7 +409,7 @@
                     const date = user.date.toDate().toLocaleString();
                     li.innerHTML = `
                         <div class="invited-info">
-                            <div>${user.email}</div>
+                            <div>${user.email || 'Anonymous User'}</div>
                             <div class="invited-date">${date}</div>
                         </div>
                         <div class="invited-points">+${user.pointsEarned || 10} points</div>
@@ -399,21 +437,11 @@
 
             // Show feedback for copy actions
             function showCopyFeedback(message) {
-                const feedback = document.createElement('div');
-                feedback.textContent = message;
-                feedback.style.position = 'fixed';
-                feedback.style.bottom = '20px';
-                feedback.style.left = '50%';
-                feedback.style.transform = 'translateX(-50%)';
-                feedback.style.backgroundColor = '#4CAF50';
-                feedback.style.color = 'white';
-                feedback.style.padding = '10px 20px';
-                feedback.style.borderRadius = '5px';
-                feedback.style.zIndex = '1000';
-                document.body.appendChild(feedback);
+                copyFeedback.textContent = message;
+                copyFeedback.style.display = 'block';
                 
                 setTimeout(() => {
-                    document.body.removeChild(feedback);
+                    copyFeedback.style.display = 'none';
                 }, 2000);
             }
 
@@ -425,17 +453,17 @@
 
             function shareTwitter() {
                 const link = encodeURIComponent(referralLinkInput.value);
-                window.open(`https://twitter.com/intent/tweet?text=Join%20me!&url=${link}`, '_blank');
+                window.open(`https://twitter.com/intent/tweet?text=Join%20me%20on%20VideoCall!&url=${link}`, '_blank');
             }
 
             function shareWhatsApp() {
                 const link = encodeURIComponent(referralLinkInput.value);
-                window.open(`https://wa.me/?text=Join%20me%20${link}`, '_blank');
+                window.open(`https://wa.me/?text=Join%20me%20on%20VideoCall!%20Use%20my%20referral%20link:%20${link}`, '_blank');
             }
 
             function shareTelegram() {
                 const link = encodeURIComponent(referralLinkInput.value);
-                window.open(`https://t.me/share/url?url=${link}&text=Join%20me`, '_blank');
+                window.open(`https://t.me/share/url?url=${link}&text=Join%20me%20on%20VideoCall!`, '_blank');
             }
 
             // Make functions available globally
