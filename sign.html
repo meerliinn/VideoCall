@@ -155,17 +155,7 @@
             document.getElementById(`${tabName}-form`).classList.add('active');
         }
 
-        // Generate referral code
-        function generateReferralCode() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let result = '';
-            for (let i = 0; i < 8; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        }
-
-        // Sign up function with complete referral tracking
+        // Sign up function with referral tracking
         async function signUp() {
             const email = document.getElementById('signup-email').value;
             const password = document.getElementById('signup-password').value;
@@ -176,71 +166,57 @@
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
                 
-                // Generate referral code for new user
-                const userRefCode = generateReferralCode();
-                
-                // Create user data
-                const userData = {
+                // Save user data with UID as referral code
+                await db.collection('users').doc(user.uid).set({
                     email: email,
-                    referralCode: userRefCode,
+                    referralCode: user.uid, // Using UID as referral code
                     referredBy: referralCode || null,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     points: 0,
-                    invitedUsers: [],
-                    depositBalance: 0,
-                    taskEarnings: 0
-                };
-
-                // Use transaction to ensure data consistency
-                await db.runTransaction(async (transaction) => {
-                    // Create new user document
-                    transaction.set(db.collection('users').doc(user.uid), userData);
-
-                    // Process referral if exists
-                    if (referralCode) {
-                        const referrerQuery = await db.collection('users')
-                            .where('referralCode', '==', referralCode)
-                            .limit(1)
-                            .get();
-
-                        if (!referrerQuery.empty) {
-                            const referrerDoc = referrerQuery.docs[0];
-                            const referrerId = referrerDoc.id;
-
-                            // Create referral data
-                            const referralData = {
-                                referrerId: referrerId,
-                                referredUserId: user.uid,
-                                referredEmail: email,
-                                points: 10,
-                                date: firebase.firestore.FieldValue.serverTimestamp(),
-                                status: 'completed'
-                            };
-
-                            // Add to referral history
-                            transaction.set(db.collection('referralHistory').doc(), referralData);
-
-                            // Update referrer's points and invited users
-                            transaction.update(db.collection('users').doc(referrerId), {
-                                points: firebase.firestore.FieldValue.increment(10),
-                                invitedUsers: firebase.firestore.FieldValue.arrayUnion({
-                                    userId: user.uid,
-                                    email: email,
-                                    date: firebase.firestore.FieldValue.serverTimestamp(),
-                                    pointsEarned: 10,
-                                    status: 'completed'
-                                })
-                            });
-                        }
-                    }
+                    invitedUsers: []
                 });
+
+                // If signed up with referral code, update referrer's points
+                if (referralCode) {
+                    await updateReferrerPoints(referralCode, user.uid, email);
+                }
 
                 showMessage('Account created! Redirecting...', 'success');
                 setTimeout(() => window.location.href = 'home.html', 1500);
                 
             } catch (error) {
-                console.error("Signup error:", error);
                 showMessage(error.message, 'error');
+                console.error("Signup error:", error);
+            }
+        }
+
+        // Update referrer's points and invited users list
+        async function updateReferrerPoints(referralCode, newUserId, newUserEmail) {
+            try {
+                // Find user with this referral code (which is their UID)
+                const referrerDoc = await db.collection('users').doc(referralCode).get();
+                
+                if (referrerDoc.exists) {
+                    const referrerData = referrerDoc.data();
+                    
+                    // Create invited user data
+                    const invitedUser = {
+                        userId: newUserId,
+                        email: newUserEmail,
+                        date: firebase.firestore.FieldValue.serverTimestamp(),
+                        pointsEarned: 10
+                    };
+                    
+                    // Update referrer's document
+                    await db.collection('users').doc(referralCode).update({
+                        points: firebase.firestore.FieldValue.increment(10),
+                        invitedUsers: firebase.firestore.FieldValue.arrayUnion(invitedUser)
+                    });
+                    
+                    console.log("Referrer points updated successfully");
+                }
+            } catch (error) {
+                console.error("Error updating referrer points:", error);
             }
         }
 
