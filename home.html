@@ -3,12 +3,23 @@
 <head>
     <title>Dashboard - VideoCall</title>
     <style>
+        :root {
+            --primary: #3498db;
+            --success: #28a745;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --info: #17a2b8;
+            --dark: #2c3e50;
+            --light: #f8f9fa;
+        }
+        
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
             background-color: #f4f4f4;
         }
+        
         .container {
             max-width: 600px;
             margin: 0 auto;
@@ -17,16 +28,19 @@
             border-radius: 8px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
         }
+        
         h1 {
             color: #333;
             text-align: center;
         }
+        
         .balance-section {
             display: flex;
             justify-content: space-between;
             margin: 20px 0;
             gap: 15px;
         }
+        
         .balance-card {
             flex: 1;
             color: white;
@@ -34,95 +48,127 @@
             border-radius: 8px;
             text-align: center;
         }
+        
         .deposit-balance {
-            background-color: #28a745;
+            background-color: var(--success);
         }
+        
         .earning-balance {
-            background-color: #17a2b8;
+            background-color: var(--info);
         }
+        
         .points-balance {
             background-color: #6f42c1;
         }
+        
         .balance-label {
             font-size: 14px;
             margin-bottom: 5px;
         }
+        
         .balance-amount {
             font-size: 24px;
             font-weight: bold;
             margin: 5px 0;
         }
+        
         .invited-users {
             margin: 20px 0;
             padding: 15px;
-            background-color: #f8f9fa;
+            background-color: var(--light);
             border-radius: 8px;
         }
+        
         .invited-users h3 {
             margin-top: 0;
-            color: #2c3e50;
+            color: var(--dark);
         }
+        
         .user-list {
             max-height: 200px;
             overflow-y: auto;
         }
+        
         .user-item {
             padding: 8px;
             border-bottom: 1px solid #eee;
             display: flex;
             justify-content: space-between;
         }
+        
         .user-date {
             font-size: 12px;
             color: #6c757d;
         }
+        
         .no-users {
             color: #6c757d;
             font-style: italic;
         }
+        
         .nav-menu {
             display: flex;
             justify-content: space-around;
             margin: 30px 0;
             gap: 10px;
         }
+        
         .nav-btn {
             padding: 15px;
-            background-color: #f8f9fa;
+            background-color: var(--light);
             border-radius: 8px;
             text-align: center;
             cursor: pointer;
             flex: 1;
             transition: all 0.3s;
         }
+        
         .nav-btn:hover {
             background-color: #e9ecef;
             transform: translateY(-3px);
         }
+        
         .nav-btn i {
             font-size: 24px;
             margin-bottom: 10px;
         }
+        
         .logout-btn {
             display: block;
             width: 100%;
             padding: 10px;
-            background-color: #dc3545;
+            background-color: var(--danger);
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             margin-top: 20px;
         }
+        
         .logout-btn:hover {
             background-color: #c82333;
         }
+        
         .logo {
             text-align: center;
             margin-bottom: 20px;
         }
+        
         .logo img {
             max-width: 150px;
+        }
+        
+        .notice-card {
+            background-color: var(--warning);
+            color: #212529;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .notice-card i {
+            margin-right: 8px;
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" crossorigin="anonymous">
@@ -133,6 +179,11 @@
             <img src="logo.png" alt="VideoCall">
         </div>
         <h1>Dashboard</h1>
+        
+        <div class="notice-card">
+            <i class="fas fa-exclamation-circle"></i>
+            <strong>Withdrawal Notice:</strong> A 10% fee applies to all withdrawals. Minimum withdrawal amount is 15 USDT.
+        </div>
         
         <div class="balance-section">
             <div class="balance-card deposit-balance">
