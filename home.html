@@ -125,7 +125,7 @@
             max-width: 150px;
         }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" crossorigin="anonymous">
 </head>
 <body>
     <div class="container">
@@ -177,8 +177,8 @@
                 <div>Products</div>
             </div>
             <div class="nav-btn" onclick="window.location.href='daily.html'">
-                <i class="fas fa-gem"></i>
-                <div>Daily Taks</div>
+                <i class="fas fa-tasks"></i>
+                <div>Daily Tasks</div>
             </div>
         </div>
         
@@ -218,28 +218,33 @@
         });
 
         // Load user data with invited users
-        function loadUserData(userId) {
-            db.collection('users').doc(userId).get()
-                .then((doc) => {
-                    if (doc.exists) {
-                        const userData = doc.data();
-                        // Update all balances
-                        document.getElementById('deposit-balance').textContent = 
-                            userData.depositBalance ? userData.depositBalance.toFixed(2) : '0.00';
-                        document.getElementById('earning-balance').textContent = 
-                            userData.taskEarnings ? userData.taskEarnings.toFixed(2) : '0.00';
-                        document.getElementById('points-balance').textContent = 
-                            userData.points || 0;
-                        
-                        // Load invited users
-                        if (userData.invitedUsers && userData.invitedUsers.length > 0) {
-                            displayInvitedUsers(userData.invitedUsers);
-                        } else {
-                            document.getElementById('invitedUsersList').innerHTML = 
-                                '<div class="no-users">No invited users yet</div>';
-                        }
+        async function loadUserData(userId) {
+            try {
+                const doc = await db.collection('users').doc(userId).get();
+                if (doc.exists) {
+                    const userData = doc.data();
+                    
+                    // Update all balances
+                    document.getElementById('deposit-balance').textContent = 
+                        userData.depositBalance ? userData.depositBalance.toFixed(2) : '0.00';
+                    document.getElementById('earning-balance').textContent = 
+                        userData.taskEarnings ? userData.taskEarnings.toFixed(2) : '0.00';
+                    document.getElementById('points-balance').textContent = 
+                        userData.points || 0;
+                    
+                    // Load invited users
+                    if (userData.invitedUsers && userData.invitedUsers.length > 0) {
+                        displayInvitedUsers(userData.invitedUsers);
+                    } else {
+                        document.getElementById('invitedUsersList').innerHTML = 
+                            '<div class="no-users">No invited users yet</div>';
                     }
-                });
+                }
+            } catch (error) {
+                console.error("Error loading user data:", error);
+                document.getElementById('invitedUsersList').innerHTML = 
+                    '<div class="no-users">Error loading data</div>';
+            }
         }
 
         // Display invited users list
@@ -250,6 +255,9 @@
             // Sort by date (newest first)
             invitedUsers.sort((a, b) => b.date.toDate() - a.date.toDate());
             
+            // Use document fragment for better performance
+            const fragment = document.createDocumentFragment();
+            
             invitedUsers.forEach(user => {
                 const userItem = document.createElement('div');
                 userItem.className = 'user-item';
@@ -259,13 +267,15 @@
                 
                 userItem.innerHTML = `
                     <div>
-                        <div>${user.email}</div>
+                        <div>${user.email || 'Anonymous User'}</div>
                         <div class="user-date">${formattedDate}</div>
                     </div>
-                    <div>+10 points</div>
+                    <div>+${user.pointsEarned || 10} points</div>
                 `;
-                userList.appendChild(userItem);
+                fragment.appendChild(userItem);
             });
+            
+            userList.appendChild(fragment);
         }
 
         // Logout function
@@ -273,6 +283,9 @@
             auth.signOut()
                 .then(() => {
                     window.location.href = 'sign.html';
+                })
+                .catch((error) => {
+                    console.error("Logout error:", error);
                 });
         }
     </script>
