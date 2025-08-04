@@ -82,6 +82,13 @@
         #referral-code-input {
             width: calc(100% - 20px);
         }
+        .name-fields {
+            display: flex;
+            gap: 10px;
+        }
+        .name-fields input {
+            width: 100%;
+        }
         .captcha-container {
             display: flex;
             align-items: center;
@@ -120,10 +127,14 @@
             <h2>Create Account</h2>
             <div id="message"></div>
             
-            <input type="text" id="name" placeholder="Full Name" required>
+            <div class="name-fields">
+                <input type="text" id="first-name" placeholder="First Name" required>
+                <input type="text" id="last-name" placeholder="Last Name" required>
+            </div>
+            
             <input type="email" id="signup-email" placeholder="Email" required>
             <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required minlength="6">
-            <input type="text" id="phone" placeholder="Phone Number" required>
+            <input type="text" id="phone" placeholder="Phone Number (optional)">
             
             <div id="referral-input-container">
                 <label for="referral-code-input">Referral Code (optional):</label>
@@ -226,9 +237,10 @@
             document.getElementById(`${tabName}-form`).classList.add('active');
         }
 
-        // Sign up function with complete referral implementation
+        // Sign up function with complete data saving
         async function signUp() {
-            const name = document.getElementById('name').value;
+            const firstName = document.getElementById('first-name').value;
+            const lastName = document.getElementById('last-name').value;
             const email = document.getElementById('signup-email').value;
             const password = document.getElementById('signup-password').value;
             const phone = document.getElementById('phone').value;
@@ -248,35 +260,47 @@
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
                 
-                // Generate short referral code (first 8 chars of UID)
-                const userReferralCode = user.uid.substring(0, 8).toUpperCase();
-                
-                // Prepare user data for Realtime Database
+                // Prepare user data for Firestore
                 const userData = {
-                    name: name,
+                    firstName: firstName,
+                    lastName: lastName,
                     email: email,
-                    phone: phone,
-                    referralCode: userReferralCode,
-                    referredBy: null, // Will be updated if referral exists
+                    phone: phone || null,
+                    referralCode: user.uid.substring(0, 8).toUpperCase(), // Short unique code
+                    referredBy: referralCode || null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     points: 0,
+                    depositBalance: 0,
+                    taskEarnings: 0,
+                    invitedUsers: [],
+                    lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'active',
+                    emailVerified: false
+                };
+
+                // Prepare user data for Realtime Database
+                const rtdbUserData = {
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: email,
+                    phone: phone || null,
                     createdAt: firebase.database.ServerValue.TIMESTAMP,
-                    lastLogin: firebase.database.ServerValue.TIMESTAMP,
+                    depositBalance: 0,
+                    taskEarnings: 0,
+                    points: 0,
                     status: 'active'
                 };
 
-                // Save to Realtime Database
-                await rdb.ref('users/' + user.uid).set(userData);
+                // Save to Firestore
+                await db.collection('users').doc(user.uid).set(userData);
                 
-                // Initialize referral tracking data
-                await rdb.ref('referrals/' + user.uid).set({
-                    totalReferrals: 0,
-                    totalPointsEarned: 0,
-                    invitedUsers: {}
-                });
+                // Save to Realtime Database
+                await rdb.ref('users/' + user.uid).set(rtdbUserData);
 
                 // If signed up with referral code, update referrer's points
                 if (referralCode) {
-                    await processReferral(referralCode, user.uid, email);
+                    await updateReferrerPoints(referralCode, user.uid, email);
                 }
 
                 // Send email verification
@@ -295,66 +319,42 @@
             }
         }
 
-        // Process referral and update points
-        async function processReferral(referralCode, newUserId, newUserEmail) {
+        // Update referrer's points and invited users list
+        async function updateReferrerPoints(referralCode, newUserId, newUserEmail) {
             try {
-                // Find referrer by their referral code
-                const referrerQuery = await db.collection('users')
-                    .where('referralCode', '==', referralCode)
-                    .limit(1)
-                    .get();
+                // Find user with this referral code (which is their UID)
+                const referrerDoc = await db.collection('users').doc(referralCode).get();
                 
-                if (referrerQuery.empty) {
-                    console.log("Referral code not found");
-                    return;
+                if (referrerDoc.exists) {
+                    const referrerData = referrerDoc.data();
+                    
+                    // Create invited user data
+                    const invitedUser = {
+                        userId: newUserId,
+                        email: newUserEmail,
+                        date: firebase.firestore.FieldValue.serverTimestamp(),
+                        pointsEarned: 10
+                    };
+                    
+                    // Update referrer's document in Firestore
+                    await db.collection('users').doc(referralCode).update({
+                        points: firebase.firestore.FieldValue.increment(10),
+                        invitedUsers: firebase.firestore.FieldValue.arrayUnion(invitedUser)
+                    });
+                    
+                    // Update referrer's points in Realtime Database
+                    await rdb.ref('users/' + referralCode + '/points').transaction((currentPoints) => {
+                        return (currentPoints || 0) + 10;
+                    });
+                    
+                    console.log("Referrer points updated successfully");
                 }
-                
-                const referrerDoc = referrerQuery.docs[0];
-                const referrerId = referrerDoc.id;
-                
-                // Prepare atomic updates for Realtime Database
-                const updates = {};
-                
-                // 1. Add 10 points to referrer
-                updates[`users/${referrerId}/points`] = firebase.database.ServerValue.increment(10);
-                
-                // 2. Update referral stats
-                updates[`referrals/${referrerId}/totalReferrals`] = firebase.database.ServerValue.increment(1);
-                updates[`referrals/${referrerId}/totalPointsEarned`] = firebase.database.ServerValue.increment(10);
-                updates[`referrals/${referrerId}/invitedUsers/${newUserId}`] = {
-                    email: newUserEmail,
-                    date: firebase.database.ServerValue.TIMESTAMP,
-                    pointsEarned: 10
-                };
-                
-                // 3. Set referredBy for new user
-                updates[`users/${newUserId}/referredBy`] = referrerId;
-                
-                // Execute all updates atomically
-                await rdb.ref().update(updates);
-                
-                console.log("Referral processed successfully");
-                
-                // Also update Firestore if needed
-                const invitedUser = {
-                    userId: newUserId,
-                    email: newUserEmail,
-                    date: firebase.firestore.FieldValue.serverTimestamp(),
-                    pointsEarned: 10
-                };
-                
-                await db.collection('users').doc(referrerId).update({
-                    points: firebase.firestore.FieldValue.increment(10),
-                    invitedUsers: firebase.firestore.FieldValue.arrayUnion(invitedUser)
-                });
-                
             } catch (error) {
-                console.error("Error processing referral:", error);
-                throw error;
+                console.error("Error updating referrer points:", error);
             }
         }
 
-        // Login function
+        // Login function - modified to not require email verification
         async function login() {
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
@@ -363,12 +363,10 @@
                 const userCredential = await auth.signInWithEmailAndPassword(email, password);
                 const user = userCredential.user;
                 
-                // Check if email is verified
-                if (!user.emailVerified) {
-                    await user.sendEmailVerification();
-                    showLoginMessage('Please verify your email first. A new verification email has been sent.', 'error');
-                    return;
-                }
+                // Update last login timestamp in Firestore
+                await db.collection('users').doc(user.uid).update({
+                    lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+                });
                 
                 // Update last login timestamp in Realtime Database
                 await rdb.ref('users/' + user.uid).update({
@@ -397,7 +395,8 @@
 
         // Check auth state
         auth.onAuthStateChanged((user) => {
-            if (user && user.emailVerified) {
+            if (user) {
+                // Only redirect if user is logged in (no email verification check)
                 window.location.href = 'home.html';
             }
         });
