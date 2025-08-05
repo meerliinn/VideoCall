@@ -319,182 +319,176 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
-            authDomain: "newporoject-c6f66.firebaseapp.com",
-            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
-            projectId: "newporoject-c6f66",
-            storageBucket: "newporoject-c6f66.appspot.com",
-            messagingSenderId: "733557611631",
-            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
-        };
-
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-
-        // Global variables
-        let currentUser = null;
-        let referralLink = '';
-        let referralCode = '';
-
-        // Check authentication state
-        auth.onAuthStateChanged((user) => {
-            if (!user) {
-                window.location.href = 'sign.html';
-            } else {
-                currentUser = user;
-                loadReferralData(user.uid);
-            }
-        });
-
-        // Load referral data
-        async function loadReferralData(userId) {
-            try {
-                const doc = await db.collection('users').doc(userId).get();
-                if (doc.exists) {
-                    const userData = doc.data();
-                    
-                    // Set referral code
-                    referralCode = userData.referralCode || userId.substring(0, 8).toUpperCase();
-                    document.getElementById('referralCode').textContent = referralCode;
-                    
-                    // Generate referral link
-                    referralLink = `${window.location.origin}/sign.html?ref=${referralCode}`;
-                    document.getElementById('referralLink').value = referralLink;
-                    
-                    // Update stats
-                    const totalReferrals = userData.invitedUsers ? userData.invitedUsers.length : 0;
-                    document.getElementById('totalReferrals').textContent = totalReferrals;
-                    document.getElementById('totalPoints').textContent = userData.points || 0;
-                    
-                    // Calculate active referrals (users who have logged in recently)
-                    let activeReferrals = 0;
-                    if (userData.invitedUsers) {
-                        const oneWeekAgo = new Date();
-                        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-                        
-                        for (const invitedUser of userData.invitedUsers) {
-                            const invitedUserDoc = await db.collection('users').doc(invitedUser.userId).get();
-                            if (invitedUserDoc.exists) {
-                                const invitedUserData = invitedUserDoc.data();
-                                if (invitedUserData.lastLogin && 
-                                    invitedUserData.lastLogin.toDate() > oneWeekAgo) {
-                                    activeReferrals++;
-                                }
-                            }
+        // Load Firebase scripts
+        async function loadFirebase() {
+            return new Promise((resolve) => {
+                const firebaseScripts = [
+                    'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
+                    'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js',
+                    'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js'
+                ];
+                
+                let loaded = 0;
+                
+                firebaseScripts.forEach((src) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.async = true;
+                    script.onload = () => {
+                        loaded++;
+                        if (loaded === firebaseScripts.length) {
+                            resolve();
                         }
-                    }
-                    document.getElementById('activeReferrals').textContent = activeReferrals;
-                    
-                    // Display invited users
-                    if (userData.invitedUsers && userData.invitedUsers.length > 0) {
-                        displayInvitedUsers(userData.invitedUsers);
-                    } else {
-                        document.getElementById('invitedUsersList').innerHTML = 
-                            '<div class="no-users">No invited users yet</div>';
-                    }
-                }
-            } catch (error) {
-                console.error("Error loading referral data:", error);
-                document.getElementById('invitedUsersList').innerHTML = 
-                    '<div class="no-users">Error loading data</div>';
-                showMessage('Error loading referral data. Please try again.', 'error');
-            }
-        }
-
-        // Display invited users
-        function displayInvitedUsers(invitedUsers) {
-            const userList = document.getElementById('invitedUsersList');
-            userList.innerHTML = '';
-            
-            // Sort by date (newest first)
-            invitedUsers.sort((a, b) => b.date.toDate() - a.date.toDate());
-            
-            invitedUsers.forEach(user => {
-                const userItem = document.createElement('div');
-                userItem.className = 'user-item';
-                
-                const date = user.date.toDate();
-                const formattedDate = date.toLocaleDateString();
-                
-                userItem.innerHTML = `
-                    <div class="user-info">
-                        <div class="user-email">${user.email || 'Anonymous User'}</div>
-                        <div class="user-date">Joined on ${formattedDate}</div>
-                    </div>
-                    <div class="user-points">+${user.pointsEarned || 10} pts</div>
-                `;
-                
-                userList.appendChild(userItem);
+                    };
+                    document.head.appendChild(script);
+                });
             });
         }
 
-        // Copy referral code to clipboard
-        function copyReferralCode() {
-            navigator.clipboard.writeText(referralCode)
-                .then(() => {
-                    showMessage('Referral code copied to clipboard!', 'success');
-                })
-                .catch(err => {
-                    console.error('Failed to copy: ', err);
-                    showMessage('Failed to copy referral code', 'error');
-                });
-        }
-
-        // Copy referral link to clipboard
-        function copyReferralLink() {
-            navigator.clipboard.writeText(referralLink)
-                .then(() => {
-                    showMessage('Referral link copied to clipboard!', 'success');
-                })
-                .catch(err => {
-                    console.error('Failed to copy: ', err);
-                    showMessage('Failed to copy referral link', 'error');
-                });
-        }
-
-        // Share via WhatsApp
-        function shareViaWhatsApp() {
-            const message = `Join me on VideoCall and earn rewards! Use my referral code ${referralCode} or click this link: ${referralLink}`;
-            const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-            window.open(url, '_blank');
-        }
-
-        // Share via Telegram
-        function shareViaTelegram() {
-            const message = `Join me on VideoCall and earn rewards! Use my referral code ${referralCode} or click this link: ${referralLink}`;
-            const url = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(message)}`;
-            window.open(url, '_blank');
-        }
-
-        // Share via Facebook
-        function shareViaFacebook() {
-            const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}&quote=Join me on VideoCall and earn rewards! Use my referral code ${referralCode}`;
-            window.open(url, '_blank');
-        }
-
-        // Share via Email
-        function shareViaEmail() {
-            const subject = 'Join me on VideoCall!';
-            const body = `Hi there,\n\nI'm using VideoCall and thought you might like it too! When you sign up using my referral code ${referralCode}, we both earn rewards.\n\nClick here to join: ${referralLink}\n\nLooking forward to seeing you there!`;
-            const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-            window.location.href = url;
-        }
-
-        // Show message
-        function showMessage(text, type) {
-            const msgDiv = document.getElementById('message');
-            msgDiv.textContent = text;
-            msgDiv.className = type;
+        // Initialize the page
+        async function initPage() {
+            await loadFirebase();
             
-            // Hide message after 3 seconds
-            setTimeout(() => {
-                msgDiv.className = 'message';
-            }, 3000);
+            const firebaseConfig = {
+                apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+                authDomain: "newporoject-c6f66.firebaseapp.com",
+                databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+                projectId: "newporoject-c6f66",
+                storageBucket: "newporoject-c6f66.appspot.com",
+                messagingSenderId: "733557611631",
+                appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+            };
+
+            firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const rdb = firebase.database();
+
+            const referralCodeInput = document.getElementById('referral-code');
+            const referralLinkInput = document.getElementById('referral-link');
+            const totalReferralsEl = document.getElementById('totalReferrals');
+            const totalPointsEl = document.getElementById('totalPoints');
+            const invitedUsersContainer = document.getElementById('invited-users-container');
+            const invitedUsersList = document.getElementById('invited-users-list');
+            const copyFeedback = document.getElementById('copyFeedback');
+
+            auth.onAuthStateChanged(async (user) => {
+                if (!user) {
+                    window.location.href = 'sign.html';
+                    return;
+                }
+                
+                const referralCode = user.uid.substring(0, 8).toUpperCase();
+                referralCodeInput.value = referralCode;
+                referralLinkInput.value = `${window.location.origin}/sign.html?ref=${referralCode}`;
+                
+                await loadReferralData(user.uid);
+            });
+
+            async function loadReferralData(userId) {
+                try {
+                    const userRef = rdb.ref('users/' + userId);
+                    userRef.on('value', (snapshot) => {
+                        const userData = snapshot.val();
+                        if (userData) {
+                            // Update stats
+                            const invitedCount = userData.invitedUsers ? Object.keys(userData.invitedUsers).length : 0;
+                            totalReferralsEl.textContent = invitedCount;
+                            totalPointsEl.textContent = userData.points || 0;
+                            
+                            // Display invited users
+                            displayInvitedUsers(userData.invitedUsers || {});
+                        }
+                    });
+                } catch (error) {
+                    console.error("Error loading referral data:", error);
+                }
+            }
+
+            function displayInvitedUsers(invitedUsers) {
+                if (!invitedUsers || Object.keys(invitedUsers).length === 0) {
+                    invitedUsersContainer.style.display = 'none';
+                    return;
+                }
+                
+                invitedUsersContainer.style.display = 'block';
+                invitedUsersList.innerHTML = '';
+                
+                // Convert to array and sort by date (newest first)
+                const usersArray = Object.values(invitedUsers).sort((a, b) => b.date - a.date);
+                
+                usersArray.forEach(user => {
+                    const li = document.createElement('li');
+                    li.className = 'invited-item';
+                    
+                    const date = new Date(user.date).toLocaleString();
+                    li.innerHTML = `
+                        <div class="invited-info">
+                            <div>${user.email || 'Anonymous User'}</div>
+                            <div class="invited-date">${date}</div>
+                        </div>
+                        <div class="invited-points">+${user.pointsEarned || 10} points</div>
+                    `;
+                    
+                    invitedUsersList.appendChild(li);
+                });
+            }
+
+            // Copy code to clipboard
+            function copyCode() {
+                referralCodeInput.select();
+                document.execCommand('copy');
+                showCopyFeedback('Referral code copied to clipboard!');
+            }
+
+            // Copy link to clipboard
+            function copyLink() {
+                referralLinkInput.select();
+                document.execCommand('copy');
+                showCopyFeedback('Referral link copied to clipboard!');
+            }
+
+            // Show feedback for copy actions
+            function showCopyFeedback(message) {
+                copyFeedback.textContent = message;
+                copyFeedback.style.display = 'block';
+                
+                setTimeout(() => {
+                    copyFeedback.style.display = 'none';
+                }, 2000);
+            }
+
+            // Share functions
+            function shareFacebook() {
+                const link = encodeURIComponent(referralLinkInput.value);
+                window.open(`https://www.facebook.com/sharer/sharer.php?u=${link}`, '_blank');
+            }
+
+            function shareTwitter() {
+                const link = encodeURIComponent(referralLinkInput.value);
+                window.open(`https://twitter.com/intent/tweet?text=Join%20me%20on%20VideoCall!&url=${link}`, '_blank');
+            }
+
+            function shareWhatsApp() {
+                const link = encodeURIComponent(referralLinkInput.value);
+                window.open(`https://wa.me/?text=Join%20me%20on%20VideoCall!%20Use%20my%20referral%20link:%20${link}`, '_blank');
+            }
+
+            function shareTelegram() {
+                const link = encodeURIComponent(referralLinkInput.value);
+                window.open(`https://t.me/share/url?url=${link}&text=Join%20me%20on%20VideoCall!`, '_blank');
+            }
+
+            // Make functions available globally
+            window.copyCode = copyCode;
+            window.copyLink = copyLink;
+            window.shareFacebook = shareFacebook;
+            window.shareTwitter = shareTwitter;
+            window.shareWhatsApp = shareWhatsApp;
+            window.shareTelegram = shareTelegram;
         }
+
+        // Start initialization
+        initPage();
     </script>
 </body>
 </html>
