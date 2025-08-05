@@ -276,7 +276,7 @@
                     invitedUsers: [],
                     lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
                     status: 'active',
-                    emailVerified: true
+                    emailVerified: false
                 };
 
                 // Prepare user data for Realtime Database
@@ -303,8 +303,11 @@
                     await updateReferrerPoints(referralCode, user.uid, email);
                 }
 
-                showMessage('Account created successfully! Redirecting...', 'success');
-                setTimeout(() => window.location.href = 'home.html', 1500);
+                // Send email verification
+                await user.sendEmailVerification();
+
+                showMessage('Account created! Please check your email for verification. Redirecting...', 'success');
+                setTimeout(() => window.location.href = 'home.html', 3000);
                 
             } catch (error) {
                 showMessage(error.message, 'error');
@@ -360,6 +363,13 @@
                 const userCredential = await auth.signInWithEmailAndPassword(email, password);
                 const user = userCredential.user;
                 
+                // Check if email is verified
+                if (!user.emailVerified) {
+                    await user.sendEmailVerification();
+                    showLoginMessage('Please verify your email first. A new verification email has been sent.', 'error');
+                    return;
+                }
+                
                 // Update last login timestamp in Firestore
                 await db.collection('users').doc(user.uid).update({
                     lastLogin: firebase.firestore.FieldValue.serverTimestamp()
@@ -392,7 +402,7 @@
 
         // Check auth state
         auth.onAuthStateChanged((user) => {
-            if (user) {
+            if (user && user.emailVerified) {
                 window.location.href = 'home.html';
             }
         });
