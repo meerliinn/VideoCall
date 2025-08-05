@@ -270,11 +270,37 @@
     </div>
 
     <div class="copy-feedback" id="copyFeedback"></div>
-// Replace the script section in referral.html with this:
-
 <script>
+    // Load Firebase scripts asynchronously
+    function loadFirebase() {
+        return new Promise((resolve) => {
+            const firebaseScripts = [
+                'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
+                'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js',
+                'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js'
+            ];
+            
+            let loaded = 0;
+            
+            firebaseScripts.forEach((src) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.async = true;
+                script.onload = () => {
+                    loaded++;
+                    if (loaded === firebaseScripts.length) {
+                        resolve();
+                    }
+                };
+                document.head.appendChild(script);
+            });
+        });
+    }
+
     // Initialize the page after Firebase is loaded
     async function initPage() {
+        await loadFirebase();
+        
         // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
@@ -289,7 +315,7 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-        const rdb = firebase.database();
+        const db = firebase.firestore();
 
         // DOM elements
         const referralCodeInput = document.getElementById('referral-code');
@@ -307,42 +333,56 @@
                 return;
             }
             
-            // Set referral code and link
-            referralCodeInput.value = user.uid;
-            referralLinkInput.value = `${window.location.origin}/sign.html?ref=${user.uid}`;
+            // Generate referral code using the same rule as sign.html (8-character uppercase from UID)
+            const referralCode = user.uid.substring(0, 8).toUpperCase();
             
-            // Load referral data
-            loadReferralData(user.uid);
+            // Update user document with referral code if not already set
+            try {
+                const userRef = db.collection('users').doc(user.uid);
+                const userDoc = await userRef.get();
+                
+                if (!userDoc.exists) {
+                    // Create user document if it doesn't exist
+                    await userRef.set({
+                        referralCode: referralCode,
+                        points: 0,
+                        invitedUsers: []
+                    }, { merge: true });
+                } else if (!userDoc.data().referralCode) {
+                    // Update existing user document if referralCode is missing
+                    await userRef.update({
+                        referralCode: referralCode
+                    });
+                }
+                
+                // Load referral data
+                loadReferralData(user.uid);
+            } catch (error) {
+                console.error("Error setting up referral code:", error);
+            }
         });
 
-        // Load user referral data from Realtime Database
+        // Load user referral data
         async function loadReferralData(userId) {
             try {
-                const referralRef = rdb.ref(`referrals/${userId}`);
-                
-                referralRef.on('value', (snapshot) => {
-                    const referralData = snapshot.val();
+                const userDoc = await db.collection('users').doc(userId).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
                     
-                    if (referralData) {
-                        totalReferralsEl.textContent = referralData.totalReferrals || 0;
-                        totalPointsEl.textContent = referralData.totalPointsEarned || 0;
-                        
-                        // Display invited users if they exist
-                        if (referralData.invitedUsers) {
-                            displayInvitedUsers(Object.values(referralData.invitedUsers));
-                        } else {
-                            invitedUsersContainer.style.display = 'none';
-                        }
-                    } else {
-                        // Initialize if no data exists
-                        rdb.ref(`referrals/${userId}`).set({
-                            totalReferrals: 0,
-                            totalPointsEarned: 0,
-                            invitedUsers: {}
-                        });
-                    }
-                });
-                
+                    // Use the stored referralCode or generate it if missing
+                    const referralCode = userData.referralCode || userId.substring(0, 8).toUpperCase();
+                    
+                    // Set referral code and link
+                    referralCodeInput.value = referralCode;
+                    referralLinkInput.value = `${window.location.origin}/sign.html?ref=${referralCode}`;
+                    
+                    // Update stats
+                    totalReferralsEl.textContent = userData.invitedUsers ? userData.invitedUsers.length : 0;
+                    totalPointsEl.textContent = userData.points || 0;
+                    
+                    // Display invited users
+                    displayInvitedUsers(userData.invitedUsers || []);
+                }
             } catch (error) {
                 console.error("Error loading referral data:", error);
             }
@@ -359,15 +399,16 @@
             invitedUsersList.innerHTML = '';
             
             // Sort by date (newest first)
-            invitedUsers.sort((a, b) => b.date - a.date);
+            invitedUsers.sort((a, b) => b.date.toDate() - a.date.toDate());
             
+            // Use document fragment for better performance
             const fragment = document.createDocumentFragment();
             
             invitedUsers.forEach(user => {
                 const li = document.createElement('li');
                 li.className = 'invited-item';
                 
-                const date = new Date(user.date).toLocaleString();
+                const date = user.date.toDate().toLocaleString();
                 li.innerHTML = `
                     <div class="invited-info">
                         <div>${user.email || 'Anonymous User'}</div>
@@ -439,4 +480,5 @@
     // Start initialization
     initPage();
 </script>
+</body>
 </html>
