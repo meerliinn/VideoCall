@@ -55,37 +55,6 @@
             font-weight: bold;
             margin: 5px 0;
         }
-        .invited-users {
-            margin: 15px 0;
-            padding: 12px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-        }
-        .invited-users h3 {
-            margin-top: 0;
-            color: #2c3e50;
-            font-size: 16px;
-        }
-        .user-list {
-            max-height: 150px;
-            overflow-y: auto;
-        }
-        .user-item {
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-        }
-        .user-date {
-            font-size: 11px;
-            color: #6c757d;
-        }
-        .no-users {
-            color: #6c757d;
-            font-style: italic;
-            font-size: 14px;
-        }
         .nav-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -280,13 +249,6 @@
             </div>
         </div>
         
-        <div class="invited-users">
-            <h3>Your Invited Users</h3>
-            <div class="user-list" id="invitedUsersList">
-                <div class="no-users">Loading...</div>
-            </div>
-        </div>
-        
         <!-- 2x3 Grid Navigation -->
         <div class="nav-grid">
             <div class="nav-btn" onclick="window.location.href='deposit.html'">
@@ -309,7 +271,7 @@
                 <i class="fas fa-tasks"></i>
                 <div>Daily Tasks</div>
             </div>
-            <div class="nav-btn" onclick="window.location.href='#'">
+            <div class="nav-btn" onclick="window.location.href='user.html'">
                 <i class="fas fa-cog"></i>
                 <div>Settings</div>
             </div>
@@ -364,7 +326,7 @@
             }
         });
 
-        // Load user data with invited users
+        // Load user data
         async function loadUserData(userId) {
             try {
                 const doc = await db.collection('users').doc(userId).get();
@@ -396,51 +358,10 @@
                         userData.taskEarnings ? userData.taskEarnings.toFixed(2) : '0.00';
                     document.getElementById('points-balance').textContent = 
                         userData.points || 0;
-                    
-                    // Load invited users
-                    if (userData.invitedUsers && userData.invitedUsers.length > 0) {
-                        displayInvitedUsers(userData.invitedUsers);
-                    } else {
-                        document.getElementById('invitedUsersList').innerHTML = 
-                            '<div class="no-users">No invited users yet</div>';
-                    }
                 }
             } catch (error) {
                 console.error("Error loading user data:", error);
-                document.getElementById('invitedUsersList').innerHTML = 
-                    '<div class="no-users">Error loading data</div>';
             }
-        }
-
-        // Display invited users list
-        function displayInvitedUsers(invitedUsers) {
-            const userList = document.getElementById('invitedUsersList');
-            userList.innerHTML = '';
-            
-            // Sort by date (newest first)
-            invitedUsers.sort((a, b) => b.date.toDate() - a.date.toDate());
-            
-            // Use document fragment for better performance
-            const fragment = document.createDocumentFragment();
-            
-            invitedUsers.forEach(user => {
-                const userItem = document.createElement('div');
-                userItem.className = 'user-item';
-                
-                const date = user.date.toDate();
-                const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-                
-                userItem.innerHTML = `
-                    <div>
-                        <div>${user.email || 'Anonymous User'}</div>
-                        <div class="user-date">${formattedDate}</div>
-                    </div>
-                    <div>+${user.pointsEarned || 10} points</div>
-                `;
-                fragment.appendChild(userItem);
-            });
-            
-            userList.appendChild(fragment);
         }
 
         // Logout function
