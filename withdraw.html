@@ -205,10 +205,57 @@
             color: #0c5460;
         }
         
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
         .loading {
             text-align: center;
             padding: 20px;
             color: #6c757d;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+            position: relative;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 16px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -232,6 +279,13 @@
             <div class="form-group">
                 <label for="wallet-address">Your TRC20 Wallet Address</label>
                 <input type="text" id="wallet-address" placeholder="Enter your USDT (TRC20) wallet address">
+            </div>
+            <div class="form-group">
+                <label for="withdraw-code">4-Digit Withdrawal Code</label>
+                <input type="text" id="withdraw-code" placeholder="Enter your 4-digit withdrawal code" maxlength="4" pattern="\d{4}">
+                <div class="text-muted">
+                    <a href="#" onclick="recoverWithdrawalCode(); return false;">Forgot your code?</a>
+                </div>
             </div>
             <button class="btn btn-primary btn-block" id="submit-withdraw">
                 <i class="fas fa-paper-plane"></i> Request Withdrawal
@@ -296,6 +350,7 @@
         const withdrawBalanceEl = document.getElementById('withdraw-balance');
         const withdrawAmountInput = document.getElementById('withdraw-amount');
         const walletAddressInput = document.getElementById('wallet-address');
+        const withdrawCodeInput = document.getElementById('withdraw-code');
         const submitWithdrawBtn = document.getElementById('submit-withdraw');
         const withdrawHistoryEl = document.getElementById('withdraw-history');
 
@@ -307,8 +362,110 @@
                 loadUserData(user.uid);
                 loadWithdrawalHistory(user.uid);
                 setupWithdrawalListener(user.uid);
+                checkUserHasWithdrawalCode(user.uid);
             }
         });
+
+        // Check if user has a withdrawal code
+        async function checkUserHasWithdrawalCode(userId) {
+            try {
+                const doc = await db.collection('withdrawalSecurity').doc(userId).get();
+                if (!doc.exists) {
+                    // User doesn't have a code yet, generate one
+                    generateWithdrawalCode(userId);
+                }
+            } catch (error) {
+                console.error("Error checking withdrawal code:", error);
+            }
+        }
+
+        // Generate a new withdrawal code
+        async function generateWithdrawalCode(userId) {
+            try {
+                const code = Math.floor(1000 + Math.random() * 9000).toString();
+                await db.collection('withdrawalSecurity').doc(userId).set({
+                    code: code,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showModal(`Your new withdrawal code is: <strong>${code}</strong><br><br>
+                Please save this code securely. You will need it for all future withdrawals.`);
+            } catch (error) {
+                console.error("Error generating withdrawal code:", error);
+                showAlert('Error generating withdrawal code. Please try again.', 'danger');
+            }
+        }
+
+        // Verify withdrawal code
+        async function verifyWithdrawalCode(userId, code) {
+            try {
+                const doc = await db.collection('withdrawalSecurity').doc(userId).get();
+                if (doc.exists) {
+                    return doc.data().code === code;
+                }
+                return false;
+            } catch (error) {
+                console.error("Error verifying withdrawal code:", error);
+                return false;
+            }
+        }
+
+        // Recover withdrawal code
+        async function recoverWithdrawalCode() {
+            const user = auth.currentUser;
+            if (!user) {
+                window.location.href = 'sign.html';
+                return;
+            }
+
+            const email = prompt("Please enter your registered email address to recover your withdrawal code:");
+            if (!email || email !== user.email) {
+                showAlert('Invalid email address provided', 'danger');
+                return;
+            }
+
+            try {
+                const doc = await db.collection('withdrawalSecurity').doc(user.uid).get();
+                if (doc.exists) {
+                    showModal(`Your withdrawal code is: <strong>${doc.data().code}</strong><br><br>
+                    Please save this code securely. You will need it for all future withdrawals.`);
+                } else {
+                    showAlert('No withdrawal code found for your account. A new one will be generated.', 'warning');
+                    generateWithdrawalCode(user.uid);
+                }
+            } catch (error) {
+                console.error("Error recovering withdrawal code:", error);
+                showAlert('Error recovering withdrawal code. Please try again.', 'danger');
+            }
+        }
+
+        // Show modal dialog
+        function showModal(content) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'modal-content';
+            modalContent.innerHTML = content;
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'modal-close';
+            closeBtn.innerHTML = '&times;';
+            closeBtn.onclick = function() {
+                document.body.removeChild(modal);
+            };
+            
+            modalContent.prepend(closeBtn);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+            
+            modal.onclick = function(e) {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            };
+        }
 
         // Load user data
         function loadUserData(userId) {
@@ -400,6 +557,7 @@
         async function submitWithdrawal() {
             const amount = parseFloat(withdrawAmountInput.value);
             const walletAddress = walletAddressInput.value.trim();
+            const code = withdrawCodeInput.value.trim();
             const user = auth.currentUser;
             
             // Validation
@@ -413,8 +571,20 @@
                 return;
             }
             
+            if (!code || code.length !== 4 || !/^\d+$/.test(code)) {
+                showAlert('Please enter a valid 4-digit withdrawal code', 'danger');
+                return;
+            }
+            
             if (!user) {
                 window.location.href = 'sign.html';
+                return;
+            }
+            
+            // Verify withdrawal code
+            const isCodeValid = await verifyWithdrawalCode(user.uid, code);
+            if (!isCodeValid) {
+                showAlert('Invalid withdrawal code. Please try again.', 'danger');
                 return;
             }
             
@@ -455,6 +625,7 @@
                 // Clear form
                 withdrawAmountInput.value = '';
                 walletAddressInput.value = '';
+                withdrawCodeInput.value = '';
                 
                 // Refresh data
                 loadUserData(user.uid);
