@@ -62,7 +62,7 @@
         button:hover {
             background-color: #0056b3;
         }
-        #message {
+        #message, #login-message {
             margin: 15px 0;
             padding: 10px;
             border-radius: 4px;
@@ -75,12 +75,6 @@
         .error {
             background-color: #f8d7da;
             color: #721c24;
-        }
-        #referral-input-container {
-            margin: 10px 0;
-        }
-        #referral-code-input {
-            width: calc(100% - 20px);
         }
         .name-fields {
             display: flex;
@@ -114,15 +108,6 @@
             cursor: pointer;
             font-size: 18px;
         }
-        .verification-banner {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            text-align: center;
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -135,9 +120,6 @@
         <div id="signup-form" class="form-container active">
             <h2>Create Account</h2>
             <div id="message"></div>
-            <div id="verificationBanner" class="verification-banner">
-                We've sent a verification email. Please check your inbox.
-            </div>
             
             <div class="name-fields">
                 <input type="text" id="first-name" placeholder="First Name" required>
@@ -147,13 +129,8 @@
             <input type="email" id="signup-email" placeholder="Email" required>
             <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required minlength="6">
             <input type="text" id="phone" placeholder="Phone Number (optional)">
+            <input type="text" id="admin-uid" placeholder="Admin UID (optional)">
             
-            <div id="referral-input-container">
-                <label for="referral-code-input">Referral Code (optional):</label>
-                <input type="text" id="referral-code-input" placeholder="Enter referral code if you have one">
-            </div>
-            
-            <!-- Numeric CAPTCHA -->
             <div class="captcha-container">
                 <div class="captcha-challenge" id="captcha-challenge"></div>
                 <button type="button" class="refresh-captcha" onclick="generateCaptcha()" title="Refresh CAPTCHA">↻</button>
@@ -172,11 +149,10 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script>
         // Firebase Configuration
         const firebaseConfig = {
@@ -193,10 +169,12 @@
         const app = firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const rdb = firebase.database();
+        const db = firebase.firestore();
 
         // CAPTCHA variables
         let captchaAnswer;
         
+        // Generate CAPTCHA challenge
         function generateCaptcha() {
             const num1 = Math.floor(Math.random() * 10) + 1;
             const num2 = Math.floor(Math.random() * 10) + 1;
@@ -217,34 +195,32 @@
         // Generate CAPTCHA on page load
         generateCaptcha();
 
-        // Check for referral code in URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlReferralCode = urlParams.get('ref');
-        if (urlReferralCode) {
-            document.getElementById('referral-code-input').value = urlReferralCode;
-        }
-
         // Tab switching
         function openTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.form-container').forEach(form => {
-                form.classList.remove('active');
-            });
-            
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.form-container').forEach(form => form.classList.remove('active'));
             document.querySelector(`.tab[onclick="openTab('${tabName}')"]`).classList.add('active');
             document.getElementById(`${tabName}-form`).classList.add('active');
         }
 
-        // Sign up function with complete data saving
+        // Generate a referral code
+        function generateReferralCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 8; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Sign up function
         async function signUp() {
             const firstName = document.getElementById('first-name').value;
             const lastName = document.getElementById('last-name').value;
             const email = document.getElementById('signup-email').value;
             const password = document.getElementById('signup-password').value;
             const phone = document.getElementById('phone').value;
-            const referralCode = document.getElementById('referral-code-input').value || urlReferralCode;
+            const adminUid = document.getElementById('admin-uid').value;
             const userCaptchaInput = document.getElementById('captcha-input').value;
             
             // Validate CAPTCHA
@@ -259,90 +235,57 @@
                 // Create user
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
+                const now = new Date();
+                const referralCode = generateReferralCode();
                 
-                // Generate referral code
-                const userReferralCode = user.uid.substring(0, 8).toUpperCase();
-                
-                // Prepare user data
+                // Create user data object
                 const userData = {
                     firstName: firstName,
                     lastName: lastName,
                     email: email,
-                    phone: phone || null,
-                    referralCode: userReferralCode,
-                    referredBy: null, // Will be updated if referral is valid
-                    createdAt: Date.now(),
+                    phone: phone || '',
+                    createdAt: firebase.firestore.Timestamp.fromDate(now),
+                    status: 'active',
+                    referralCode: referralCode,
+                    depositBalance: 0,
+                    taskEarnings: 0,
                     points: 0,
-                    invitedUsers: {},
-                    lastLogin: Date.now(),
-                    status: 'active'
+                    lastLogin: null
                 };
 
-                // Save user data
-                await rdb.ref('users/' + user.uid).set(userData);
+                // Save user data to Firestore
+                await db.collection('users').doc(user.uid).set(userData);
+                
+                // Save basic user data to RTDB (for real-time features if needed)
+                await rdb.ref('users/' + user.uid).set({
+                    email: email,
+                    firstName: firstName,
+                    lastName: lastName,
+                    status: 'active',
+                    lastLogin: null
+                });
 
-                // Process referral if exists
-                if (referralCode) {
-                    await processReferral(referralCode, user.uid, email);
+                // Notify admin if UID was provided
+                if (adminUid) {
+                    await rdb.ref('admin_notifications/' + adminUid).push({
+                        type: 'new_signup',
+                        email: email,
+                        userId: user.uid,
+                        timestamp: Date.now(),
+                        read: false
+                    });
                 }
 
-                // Send email verification
+                // Send verification email
                 await user.sendEmailVerification();
-
-                showMessage('Account created! Please check your email for verification. Redirecting...', 'success');
+                showMessage('Account created! Check your email for verification.', 'success');
                 setTimeout(() => window.location.href = 'home.html', 3000);
                 
             } catch (error) {
                 showMessage(error.message, 'error');
-                console.error("Signup error:", error);
             } finally {
                 generateCaptcha();
                 document.getElementById('captcha-input').value = '';
-            }
-        }
-
-        async function processReferral(referralCode, newUserId, newUserEmail) {
-            try {
-                // Find referrer by referral code
-                const usersRef = rdb.ref('users');
-                const snapshot = await usersRef.orderByChild('referralCode').equalTo(referralCode).once('value');
-                
-                if (!snapshot.exists()) {
-                    console.log("No referrer found with code:", referralCode);
-                    return false;
-                }
-                
-                // Get referrer data (there should be only one match)
-                let referrerId, referrerData;
-                snapshot.forEach((childSnapshot) => {
-                    referrerId = childSnapshot.key;
-                    referrerData = childSnapshot.val();
-                });
-                
-                // Create invited user data
-                const invitedUser = {
-                    userId: newUserId,
-                    email: newUserEmail,
-                    date: Date.now(),
-                    pointsEarned: 10
-                };
-                
-                // Update referrer's data
-                const updates = {};
-                updates[`users/${referrerId}/points`] = (referrerData.points || 0) + 10;
-                updates[`users/${referrerId}/invitedUsers/${newUserId}`] = invitedUser;
-                
-                // Update new user's referredBy field
-                updates[`users/${newUserId}/referredBy`] = referralCode;
-                
-                // Execute all updates
-                await rdb.ref().update(updates);
-                
-                console.log("Referral processed successfully");
-                return true;
-            } catch (error) {
-                console.error("Error processing referral:", error);
-                return false;
             }
         }
 
@@ -354,15 +297,13 @@
             try {
                 const userCredential = await auth.signInWithEmailAndPassword(email, password);
                 const user = userCredential.user;
+                const now = new Date();
                 
-                // Check if email is verified
-                if (!user.emailVerified) {
-                    await user.sendEmailVerification();
-                    showLoginMessage('Please verify your email first. A new verification email has been sent.', 'error');
-                    return;
-                }
+                // Update last login time in both Firestore and RTDB
+                await db.collection('users').doc(user.uid).update({
+                    lastLogin: firebase.firestore.Timestamp.fromDate(now)
+                });
                 
-                // Update last login timestamp
                 await rdb.ref('users/' + user.uid).update({
                     lastLogin: Date.now()
                 });
