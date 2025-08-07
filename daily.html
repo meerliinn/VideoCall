@@ -3,23 +3,12 @@
 <head>
     <title>Daily Tasks - VideoCall</title>
     <style>
-        :root {
-            --primary: #007bff;
-            --success: #28a745;
-            --danger: #dc3545;
-            --warning: #ffc107;
-            --info: #17a2b8;
-            --dark: #343a40;
-            --light: #f8f9fa;
-        }
-        
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
             background-color: #f4f4f4;
         }
-        
         .container {
             max-width: 600px;
             margin: 0 auto;
@@ -28,68 +17,58 @@
             border-radius: 8px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
         }
-        
         h1 {
             color: #333;
             text-align: center;
             margin-bottom: 30px;
         }
-        
         .balance-card {
-            background-color: var(--info);
+            background-color: #17a2b8;
             color: white;
             padding: 20px;
             border-radius: 8px;
             text-align: center;
             margin: 20px 0;
         }
-        
         .balance-amount {
             font-size: 36px;
             font-weight: bold;
             margin: 10px 0;
         }
-        
         .task-section {
             margin: 30px 0;
         }
-        
         .task-item {
             padding: 15px;
             border: 1px solid #ddd;
             border-radius: 8px;
             margin-bottom: 15px;
-            background-color: var(--light);
+            background-color: #f8f9fa;
         }
-        
         .task-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
         }
-        
         .task-title {
             font-size: 18px;
             font-weight: bold;
-            color: var(--dark);
+            color: #2c3e50;
         }
-        
         .task-reward {
             font-size: 16px;
             font-weight: bold;
-            color: var(--success);
+            color: #28a745;
         }
-        
         .task-description {
             margin-bottom: 10px;
             color: #6c757d;
         }
-        
         .claim-btn {
             width: 100%;
             padding: 10px;
-            background-color: var(--success);
+            background-color: #28a745;
             color: white;
             border: none;
             border-radius: 4px;
@@ -97,44 +76,36 @@
             font-weight: bold;
             transition: all 0.3s;
         }
-        
         .claim-btn:hover {
             background-color: #218838;
         }
-        
         .claim-btn:disabled {
             background-color: #6c757d;
             cursor: not-allowed;
         }
-        
         .nav-menu {
             display: flex;
             justify-content: space-around;
             margin: 30px 0;
-            gap: 10px;
         }
-        
         .nav-btn {
             padding: 15px;
-            background-color: var(--light);
+            background-color: #f8f9fa;
             border-radius: 8px;
             text-align: center;
             cursor: pointer;
             flex: 1;
+            margin: 0 5px;
             transition: all 0.3s;
         }
-        
         .nav-btn:hover {
             background-color: #e9ecef;
             transform: translateY(-3px);
         }
-        
         .nav-btn i {
             font-size: 24px;
             margin-bottom: 10px;
-            display: block;
         }
-        
         .back-btn {
             display: block;
             width: 100%;
@@ -147,62 +118,29 @@
             margin-top: 20px;
             text-align: center;
         }
-        
         .back-btn:hover {
             background-color: #5a6268;
         }
-        
         .no-tasks {
             text-align: center;
             padding: 20px;
             color: #6c757d;
             font-style: italic;
         }
-        
         .task-status {
             font-size: 14px;
             color: #6c757d;
             margin-top: 5px;
             text-align: right;
         }
-        
         .task-completed {
-            color: var(--success);
+            color: #28a745;
         }
-        
-        .notice-card {
-            background-color: var(--warning);
-            color: #212529;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        
-        .notice-card i {
-            margin-right: 8px;
-        }
-        
-        .claim-all-btn {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+        .countdown {
+            font-size: 14px;
+            color: #dc3545;
+            margin-top: 5px;
             font-weight: bold;
-            margin-bottom: 20px;
-            transition: all 0.3s;
-        }
-        
-        .claim-all-btn:hover {
-            background-color: #0069d9;
-        }
-        
-        .claim-all-btn:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -211,20 +149,11 @@
     <div class="container">
         <h1>Daily Tasks</h1>
         
-        <div class="notice-card">
-            <i class="fas fa-exclamation-circle"></i>
-            <strong>Withdrawal Notice:</strong> A 10% fee applies to all withdrawals. Minimum withdrawal amount is 15 USDT.
-        </div>
-        
         <div class="balance-card">
             <div>Your Earnings Balance</div>
             <div class="balance-amount" id="earning-balance">0</div>
             <div>USDT</div>
         </div>
-        
-        <button class="claim-all-btn" id="claim-all-btn" disabled>
-            <i class="fas fa-coins"></i> Claim All Earnings
-        </button>
         
         <div class="task-section">
             <h3>Your Daily Earnings</h3>
@@ -245,10 +174,6 @@
             <div class="nav-btn" onclick="window.location.href='product.html'">
                 <i class="fas fa-gem"></i>
                 <div>Products</div>
-            </div>
-            <div class="nav-btn" onclick="window.location.href='withdraw.html'">
-                <i class="fas fa-wallet"></i>
-                <div>Withdraw</div>
             </div>
         </div>
         
@@ -281,8 +206,6 @@
         // DOM elements
         const earningBalanceEl = document.getElementById('earning-balance');
         const tasksList = document.getElementById('tasks-list');
-        const claimAllBtn = document.getElementById('claim-all-btn');
-        let availableTasks = [];
 
         // Check authentication state
         auth.onAuthStateChanged((user) => {
@@ -313,11 +236,9 @@
                 .get()
                 .then((querySnapshot) => {
                     tasksList.innerHTML = '';
-                    availableTasks = [];
                     
                     if (querySnapshot.empty) {
                         tasksList.innerHTML = '<div class="no-tasks">No active investments found. Purchase a product to start earning daily rewards.</div>';
-                        claimAllBtn.disabled = true;
                         return;
                     }
                     
@@ -330,12 +251,22 @@
                         const lastClaimDate = investment.lastPayoutDate ? investment.lastPayoutDate.toDate() : null;
                         const alreadyClaimed = lastClaimDate && lastClaimDate >= today;
                         
+                        // Calculate days remaining
+                        const purchaseDate = investment.purchaseDate.toDate();
+                        const daysPassed = Math.floor((today - purchaseDate) / (1000 * 60 * 60 * 24));
+                        const daysRemaining = Math.max(0, investment.duration - daysPassed);
+                        
+                        // Check if investment period has ended
+                        const isExpired = daysRemaining <= 0;
+                        
                         // Calculate daily earnings
                         let dailyEarnings = 0;
-                        if (investment.isFixed) {
-                            dailyEarnings = investment.dailyEarnings;
-                        } else {
-                            dailyEarnings = (investment.amount * investment.dailyEarnings) / 100;
+                        if (!isExpired) {
+                            if (investment.isFixed) {
+                                dailyEarnings = investment.dailyEarnings;
+                            } else {
+                                dailyEarnings = (investment.amount * investment.dailyEarnings) / 100;
+                            }
                         }
                         
                         const taskItem = document.createElement('div');
@@ -343,31 +274,22 @@
                         taskItem.innerHTML = `
                             <div class="task-header">
                                 <div class="task-title">${investment.productName}</div>
-                                <div class="task-reward">+${dailyEarnings.toFixed(2)} USDT</div>
+                                <div class="task-reward">${isExpired ? 'Expired' : `+${dailyEarnings.toFixed(2)} USDT`}</div>
                             </div>
                             <div class="task-description">
-                                Claim your daily earnings from this investment package.
+                                ${isExpired ? 'This investment period has ended' : 'Claim your daily earnings from this investment package.'}
                             </div>
+                            <div class="countdown">Days remaining: ${daysRemaining}/${investment.duration}</div>
                             <button class="claim-btn" onclick="claimDailyEarnings('${doc.id}', ${dailyEarnings})" 
-                                ${alreadyClaimed ? 'disabled' : ''}>
-                                ${alreadyClaimed ? 'Already Claimed Today' : 'Claim Earnings'}
+                                ${alreadyClaimed || isExpired ? 'disabled' : ''}>
+                                ${isExpired ? 'Investment Ended' : (alreadyClaimed ? 'Already Claimed Today' : 'Claim Earnings')}
                             </button>
-                            ${alreadyClaimed ? 
+                            ${alreadyClaimed && !isExpired ? 
                                 `<div class="task-status task-completed">Last claimed: ${lastClaimDate.toLocaleString()}</div>` : 
                                 ''}
                         `;
                         tasksList.appendChild(taskItem);
-                        
-                        if (!alreadyClaimed) {
-                            availableTasks.push({
-                                id: doc.id,
-                                earnings: dailyEarnings
-                            });
-                        }
                     });
-                    
-                    // Enable/disable claim all button
-                    claimAllBtn.disabled = availableTasks.length === 0;
                 });
         }
 
@@ -402,68 +324,6 @@
                 alert('Error claiming earnings. Please try again.');
             }
         }
-
-        // Claim all available earnings
-        async function claimAllEarnings() {
-            const user = auth.currentUser;
-            if (!user) {
-                window.location.href = 'sign.html';
-                return;
-            }
-            
-            if (availableTasks.length === 0) {
-                alert('No earnings available to claim');
-                return;
-            }
-            
-            if (!confirm(`Claim all ${availableTasks.length} available earnings totaling ${availableTasks.reduce((sum, task) => sum + task.earnings, 0).toFixed(2)} USDT?`)) {
-                return;
-            }
-            
-            try {
-                claimAllBtn.disabled = true;
-                claimAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-                
-                // Process all claims in a batch
-                const batch = db.batch();
-                const userRef = db.collection('users').doc(user.uid);
-                
-                let totalEarned = 0;
-                
-                // Update each investment
-                for (const task of availableTasks) {
-                    const investmentRef = db.collection('investments').doc(task.id);
-                    batch.update(investmentRef, {
-                        lastPayoutDate: firebase.firestore.FieldValue.serverTimestamp(),
-                        totalEarned: firebase.firestore.FieldValue.increment(task.earnings)
-                    });
-                    totalEarned += task.earnings;
-                }
-                
-                // Update user balance
-                batch.update(userRef, {
-                    taskEarnings: firebase.firestore.FieldValue.increment(totalEarned)
-                });
-                
-                await batch.commit();
-                
-                alert(`Successfully claimed ${totalEarned.toFixed(2)} USDT from ${availableTasks.length} investments!`);
-                
-                // Refresh data
-                loadUserData(user.uid);
-                loadDailyTasks(user.uid);
-                
-            } catch (error) {
-                console.error('Error claiming all earnings:', error);
-                alert('Error claiming earnings. Please try again.');
-            } finally {
-                claimAllBtn.disabled = false;
-                claimAllBtn.innerHTML = '<i class="fas fa-coins"></i> Claim All Earnings';
-            }
-        }
-
-        // Event listeners
-        claimAllBtn.addEventListener('click', claimAllEarnings);
     </script>
 </body>
 </html>
