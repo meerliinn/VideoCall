@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Notification Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .notification {
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #f9f9f9;
+            border-left: 4px solid #007bff;
+            border-radius: 4px;
+            position: relative;
+        }
+        .notification.unread {
+            background-color: #e7f3ff;
+            border-left-color: #0056b3;
+        }
+        .notification .email {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .notification .time {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .notification .actions {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+        }
+        button {
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .no-notifications {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+        .current-user {
+            background-color: #e7f3ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Notification Dashboard</h1>
+        <div id="current-user" class="current-user"></div>
+        <div id="notifications-container">
+            <div class="no-notifications">Loading notifications...</div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const rdb = firebase.database();
+        let currentAdminUid = null;
+
+        // Check auth state
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentAdminUid = user.uid;
+                document.getElementById('current-user').innerHTML = `
+                    <strong>Logged in as:</strong> ${user.email}<br>
+                    <strong>Your UID:</strong> ${user.uid}
+                `;
+                loadNotifications(user.uid);
+            } else {
+                window.location.href = 'sign.html?tab=login';
+            }
+        });
+
+        // Load notifications
+        function loadNotifications(adminUid) {
+            const container = document.getElementById('notifications-container');
+            console.log(`Loading notifications for admin: ${adminUid}`);
+            
+            rdb.ref('admin_notifications/' + adminUid).orderByChild('timestamp').on('value', (snapshot) => {
+                console.log("Received data:", snapshot.val());
+                
+                if (!snapshot.exists()) {
+                    container.innerHTML = '<div class="no-notifications">No notifications yet</div>';
+                    console.log("No notifications found for this user");
+                    return;
+                }
+
+                const notificationList = [];
+                snapshot.forEach(childSnapshot => {
+                    notificationList.push({
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    });
+                });
+                
+                // Sort by timestamp (newest first)
+                notificationList.sort((a, b) => b.timestamp - a.timestamp);
+                
+                container.innerHTML = '';
+                notificationList.forEach(notif => {
+                    const div = document.createElement('div');
+                    div.className = `notification ${notif.read ? '' : 'unread'}`;
+                    const date = new Date(notif.timestamp);
+                    
+                    div.innerHTML = `
+                        <div>
+                            <span class="email">${notif.email}</span> signed up using your Code
+                            <div class="time">${date.toLocaleString()}</div>
+                            <div style="font-size: 0.8em; color: #999;">Notification ID: ${notif.id}</div>
+                            <div style="font-size: 0.8em; color: #999;">User ID: ${notif.userId}</div>
+                        </div>
+                        <div class="actions">
+                            ${!notif.read ? `<button onclick="markAsRead('${adminUid}', '${notif.id}')">Mark Read</button>` : '✓ Read'}
+                        </div>
+                    `;
+                    
+                    container.appendChild(div);
+                });
+            }, (error) => {
+                console.error("Error loading notifications:", error);
+                container.innerHTML = `<div class="no-notifications">Error loading notifications: ${error.message}</div>`;
+            });
+        }
+
+        // Mark notification as read
+        function markAsRead(adminUid, notificationId) {
+            rdb.ref('admin_notifications/' + adminUid + '/' + notificationId).update({
+                read: true
+            });
+        }
+    </script>
+</body>
+</html>
