@@ -164,10 +164,15 @@
         .profile-info {
             flex: 1;
         }
-        .profile-email {
+        .profile-name {
             font-weight: bold;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
             font-size: 14px;
+        }
+        .profile-email {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 4px;
         }
         .profile-meta {
             font-size: 11px;
@@ -202,13 +207,14 @@
                 <div class="profile-header">
                     <div class="profile-avatar" id="profileAvatar">U</div>
                     <div class="profile-info">
+                        <div class="profile-name" id="profileName">User Name</div>
                         <div class="profile-email" id="profileEmail">user@example.com</div>
                         <div class="profile-meta">Member since: <span id="joinDate">-</span></div>
                     </div>
                 </div>
                 <div class="dropdown-item">
-                    <i class="fas fa-id-card"></i>
-                    <div>Your Referral Code: <span id="referralCode">-</span></div>
+                    <i class="fas fa-id-badge"></i>
+                    <div>User ID: <span id="userIdDisplay">-</span></div>
                 </div>
                 <div class="dropdown-item">
                     <i class="fas fa-coins"></i>
@@ -271,15 +277,11 @@
                 <i class="fas fa-tasks"></i>
                 <div>Daily Tasks</div>
             </div>
-            <div class="nav-btn" onclick="window.location.href='user.html'">
-                <i class="fas fa-cog"></i>
-                <div>Settings</div>
+            <div class="nav-btn" onclick="window.location.href='notifications.html'">
+                <i class="fas fa-bell"></i>
+                <div>Notifications</div>
             </div>
         </div>
-        
-        <button class="logout-btn" onclick="logout()">
-            <i class="fas fa-sign-out-alt"></i> Log Out
-        </button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -334,14 +336,18 @@
                     const userData = doc.data();
                     
                     // Update profile dropdown
+                    document.getElementById('profileName').textContent = 
+                        `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'User';
                     document.getElementById('profileEmail').textContent = userData.email || 'No email';
-                    document.getElementById('referralCode').textContent = userData.referralCode || userId.substring(0, 8);
+                    document.getElementById('userIdDisplay').textContent = userId.substring(0, 8) + '...';
                     document.getElementById('dropdownPoints').textContent = userData.points || 0;
                     document.getElementById('dropdownBalance').textContent = 
                         userData.depositBalance ? userData.depositBalance.toFixed(2) : '0.00';
                     
-                    // Set avatar with first letter of email
-                    const firstLetter = userData.email ? userData.email.charAt(0).toUpperCase() : 'U';
+                    // Set avatar with first letter of first name or email
+                    const firstLetter = userData.firstName ? 
+                        userData.firstName.charAt(0).toUpperCase() : 
+                        (userData.email ? userData.email.charAt(0).toUpperCase() : 'U');
                     document.getElementById('profileAvatar').textContent = firstLetter;
                     document.getElementById('profileIcon').textContent = firstLetter;
                     
