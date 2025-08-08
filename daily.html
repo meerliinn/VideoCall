@@ -136,11 +136,14 @@
         .task-completed {
             color: #28a745;
         }
-        .countdown {
-            font-size: 14px;
-            color: #dc3545;
-            margin-top: 5px;
-            font-weight: bold;
+        .weekend-notice {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid #ffeeba;
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -157,6 +160,9 @@
         
         <div class="task-section">
             <h3>Your Daily Earnings</h3>
+            <div id="weekend-notice" class="weekend-notice" style="display: none;">
+                <i class="fas fa-calendar-alt"></i> Earnings cannot be claimed on weekends (Saturday and Sunday). Please return on a weekday.
+            </div>
             <div id="tasks-list">
                 <div class="no-tasks">Loading your tasks...</div>
             </div>
@@ -206,6 +212,14 @@
         // DOM elements
         const earningBalanceEl = document.getElementById('earning-balance');
         const tasksList = document.getElementById('tasks-list');
+        const weekendNotice = document.getElementById('weekend-notice');
+
+        // Check if today is weekend (Saturday or Sunday)
+        function isWeekend() {
+            const today = new Date();
+            const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+            return dayOfWeek === 0 || dayOfWeek === 6;
+        }
 
         // Check authentication state
         auth.onAuthStateChanged((user) => {
@@ -230,6 +244,13 @@
 
         // Load daily tasks based on active investments
         function loadDailyTasks(userId) {
+            // Show weekend notice if it's weekend
+            if (isWeekend()) {
+                weekendNotice.style.display = 'block';
+            } else {
+                weekendNotice.style.display = 'none';
+            }
+            
             db.collection('investments')
                 .where('userId', '==', userId)
                 .where('status', '==', 'active')
@@ -251,22 +272,12 @@
                         const lastClaimDate = investment.lastPayoutDate ? investment.lastPayoutDate.toDate() : null;
                         const alreadyClaimed = lastClaimDate && lastClaimDate >= today;
                         
-                        // Calculate days remaining
-                        const purchaseDate = investment.purchaseDate.toDate();
-                        const daysPassed = Math.floor((today - purchaseDate) / (1000 * 60 * 60 * 24));
-                        const daysRemaining = Math.max(0, investment.duration - daysPassed);
-                        
-                        // Check if investment period has ended
-                        const isExpired = daysRemaining <= 0;
-                        
                         // Calculate daily earnings
                         let dailyEarnings = 0;
-                        if (!isExpired) {
-                            if (investment.isFixed) {
-                                dailyEarnings = investment.dailyEarnings;
-                            } else {
-                                dailyEarnings = (investment.amount * investment.dailyEarnings) / 100;
-                            }
+                        if (investment.isFixed) {
+                            dailyEarnings = investment.dailyEarnings;
+                        } else {
+                            dailyEarnings = (investment.amount * investment.dailyEarnings) / 100;
                         }
                         
                         const taskItem = document.createElement('div');
@@ -274,17 +285,16 @@
                         taskItem.innerHTML = `
                             <div class="task-header">
                                 <div class="task-title">${investment.productName}</div>
-                                <div class="task-reward">${isExpired ? 'Expired' : `+${dailyEarnings.toFixed(2)} USDT`}</div>
+                                <div class="task-reward">+${dailyEarnings.toFixed(2)} USDT</div>
                             </div>
                             <div class="task-description">
-                                ${isExpired ? 'This investment period has ended' : 'Claim your daily earnings from this investment package.'}
+                                Claim your daily earnings from this investment package.
                             </div>
-                            <div class="countdown">Days remaining: ${daysRemaining}/${investment.duration}</div>
                             <button class="claim-btn" onclick="claimDailyEarnings('${doc.id}', ${dailyEarnings})" 
-                                ${alreadyClaimed || isExpired ? 'disabled' : ''}>
-                                ${isExpired ? 'Investment Ended' : (alreadyClaimed ? 'Already Claimed Today' : 'Claim Earnings')}
+                                ${(alreadyClaimed || isWeekend()) ? 'disabled' : ''}>
+                                ${alreadyClaimed ? 'Already Claimed Today' : isWeekend() ? 'Weekend - Claim Disabled' : 'Claim Earnings'}
                             </button>
-                            ${alreadyClaimed && !isExpired ? 
+                            ${alreadyClaimed ? 
                                 `<div class="task-status task-completed">Last claimed: ${lastClaimDate.toLocaleString()}</div>` : 
                                 ''}
                         `;
@@ -298,6 +308,12 @@
             const user = auth.currentUser;
             if (!user) {
                 window.location.href = 'sign.html';
+                return;
+            }
+            
+            // Double check it's not weekend (in case someone bypasses the UI)
+            if (isWeekend()) {
+                alert('Earnings cannot be claimed on weekends. Please return on a weekday.');
                 return;
             }
             
