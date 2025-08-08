@@ -257,6 +257,14 @@
             font-size: 16px;
             cursor: pointer;
         }
+        
+        .fee-info {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -287,6 +295,13 @@
                     <a href="#" onclick="recoverWithdrawalCode(); return false;">Forgot your code?</a>
                 </div>
             </div>
+            
+            <div class="fee-info">
+                <strong>Withdrawal Fee:</strong> 10% of withdrawal amount<br>
+                <strong>Fee Conversion:</strong> 1 USDT fee = 10 points<br>
+                <span id="fee-details">Enter amount to see fee details</span>
+            </div>
+            
             <button class="btn btn-primary btn-block" id="submit-withdraw">
                 <i class="fas fa-paper-plane"></i> Request Withdrawal
             </button>
@@ -353,6 +368,35 @@
         const withdrawCodeInput = document.getElementById('withdraw-code');
         const submitWithdrawBtn = document.getElementById('submit-withdraw');
         const withdrawHistoryEl = document.getElementById('withdraw-history');
+        const feeDetailsEl = document.getElementById('fee-details');
+
+        // Calculate withdrawal fee and points
+        function calculateWithdrawalDetails(amount) {
+            const fee = amount * 0.10; // 10% fee
+            const netAmount = amount - fee;
+            const points = fee * 10; // 1 USDT = 10 points
+            
+            return {
+                fee: fee.toFixed(2),
+                netAmount: netAmount.toFixed(2),
+                points: Math.round(points)
+            };
+        }
+
+        // Update fee details when amount changes
+        withdrawAmountInput.addEventListener('input', function() {
+            const amount = parseFloat(this.value);
+            if (amount >= 15) {
+                const details = calculateWithdrawalDetails(amount);
+                feeDetailsEl.innerHTML = `
+                    <strong>Fee:</strong> ${details.fee} USDT (10%)<br>
+                    <strong>You receive:</strong> ${details.netAmount} USDT<br>
+                    <strong>Points earned:</strong> ${details.points} points
+                `;
+            } else {
+                feeDetailsEl.textContent = 'Enter amount to see fee details';
+            }
+        });
 
         // Check authentication state
         auth.onAuthStateChanged((user) => {
@@ -532,6 +576,7 @@
                             <div>
                                 <div class="history-amount">-${parseFloat(withdrawal.amount).toFixed(2)} USDT</div>
                                 <div class="history-date">${formattedDate}</div>
+                                ${withdrawal.fee ? `<div class="text-muted">Fee: ${parseFloat(withdrawal.fee).toFixed(2)} USDT (${withdrawal.pointsEarned || 0} points)</div>` : ''}
                             </div>
                             <div>
                                 <span class="badge ${statusClass}">${statusText}</span>
@@ -550,7 +595,41 @@
         function setupWithdrawalListener(userId) {
             rdb.ref('withdrawals').orderByChild('userId').equalTo(userId).on('value', (snapshot) => {
                 loadWithdrawalHistory(userId);
+                
+                // Check for newly approved withdrawals
+                snapshot.forEach(child => {
+                    const withdrawal = child.val();
+                    
+                    // Only process if status changed to approved and points not yet credited
+                    if (withdrawal.status === 'approved' && !withdrawal.pointsCredited && withdrawal.pointsEarned) {
+                        creditWithdrawalPoints(userId, withdrawal.pointsEarned, child.key);
+                    }
+                });
             });
+        }
+
+        // Function to credit points for approved withdrawal
+        async function creditWithdrawalPoints(userId, points, withdrawalKey) {
+            try {
+                // Update user's points in Firestore
+                await db.collection('users').doc(userId).update({
+                    points: firebase.firestore.FieldValue.increment(points)
+                });
+                
+                // Update withdrawal record to mark points as credited
+                await rdb.ref('withdrawals').child(withdrawalKey).update({
+                    pointsCredited: true
+                });
+                
+                console.log(`Successfully credited ${points} points to user ${userId}`);
+                
+                // Show success message if user is currently viewing the page
+                if (auth.currentUser && auth.currentUser.uid === userId) {
+                    showAlert(`Withdrawal approved! ${points} points credited to your account.`, 'success');
+                }
+            } catch (error) {
+                console.error('Error crediting withdrawal points:', error);
+            }
         }
 
         // Submit withdrawal request
@@ -604,6 +683,9 @@
                     return;
                 }
                 
+                // Calculate withdrawal details
+                const withdrawalDetails = calculateWithdrawalDetails(amount);
+                
                 // Disable button during processing
                 submitWithdrawBtn.disabled = true;
                 submitWithdrawBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
@@ -613,19 +695,24 @@
                     userId: user.uid,
                     userEmail: user.email || 'no-email',
                     amount: amount,
+                    netAmount: withdrawalDetails.netAmount,
+                    fee: withdrawalDetails.fee,
+                    pointsEarned: withdrawalDetails.points,
                     walletAddress: walletAddress,
                     status: 'pending',
                     timestamp: Date.now(),
                     processedAt: null,
-                    processedBy: null
+                    processedBy: null,
+                    pointsCredited: false
                 });
                 
-                showAlert('Withdrawal request submitted for admin approval!', 'success');
+                showAlert(`Withdrawal request submitted! Fee: ${withdrawalDetails.fee} USDT (credited as ${withdrawalDetails.points} points when approved)`, 'success');
                 
                 // Clear form
                 withdrawAmountInput.value = '';
                 walletAddressInput.value = '';
                 withdrawCodeInput.value = '';
+                feeDetailsEl.textContent = 'Enter amount to see fee details';
                 
                 // Refresh data
                 loadUserData(user.uid);
