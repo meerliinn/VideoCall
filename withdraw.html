@@ -511,7 +511,7 @@
             try {
                 const doc = await db.collection('withdrawalSecurity').doc(user.uid).get();
                 if (doc.exists) {
-                    showModal(`To found Your withdrawal code  <strong><a href="https://t.me/t_o_ols>Contact Support</strong><br><br>
+                    showModal(`To found Your withdrawal code  <strong><a href="https://t.me/t_o_ols"><button>Contact Support</button></a></strong><br><br>
                     Please contact us on telegram to recover your withdrawal code. You will need it for all future withdrawals.`);
                 } else {
                     showAlert('No withdrawal code found for your account. A new one will be generated.', 'warning');
