@@ -194,11 +194,6 @@
             font-weight: bold;
         }
         
-        .text-success {
-            color: var(--success);
-            font-weight: bold;
-        }
-        
         .alert {
             padding: 10px 15px;
             border-radius: 4px;
@@ -218,11 +213,6 @@
         .alert-danger {
             background-color: #f8d7da;
             color: #721c24;
-        }
-        
-        .alert-warning {
-            background-color: #fff3cd;
-            color: #856404;
         }
         
         .loading {
@@ -268,18 +258,16 @@
             cursor: pointer;
         }
         
-        .fee-info {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 4px;
-            margin: 10px 0;
+        .attempt-warning {
+            color: var(--danger);
             font-size: 14px;
+            margin-top: 5px;
+            display: none;
         }
         
-        .fee-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
+        .timer-display {
+            color: var(--danger);
+            font-weight: bold;
         }
     </style>
 </head>
@@ -292,7 +280,6 @@
             <div class="balance-amount" id="withdraw-balance">0.00</div>
             <div>USDT</div>
             <div class="text-muted">Minimum withdrawal: <span class="text-danger">15 USDT</span></div>
-            <div class="text-muted">Available Points: <span class="text-success" id="points-balance">0</span></div>
         </div>
         
         <div class="form-section">
@@ -301,22 +288,6 @@
                 <label for="withdraw-amount">Amount (USDT)</label>
                 <input type="number" id="withdraw-amount" placeholder="Enter amount (min 15 USDT)" min="15" step="0.01">
             </div>
-            
-            <div class="fee-info">
-                <div class="fee-row">
-                    <span>Withdrawal Amount:</span>
-                    <span id="display-amount">0.00 USDT</span>
-                </div>
-                <div class="fee-row">
-                    <span>Withdrawal Fee (10% in points):</span>
-                    <span id="display-fee">0 Points</span>
-                </div>
-                <div class="fee-row">
-                    <span>You will receive:</span>
-                    <span class="text-success" id="display-receive">0.00 USDT</span>
-                </div>
-            </div>
-            
             <div class="form-group">
                 <label for="wallet-address">Your TRC20 Wallet Address</label>
                 <input type="text" id="wallet-address" placeholder="Enter your USDT (TRC20) wallet address">
@@ -324,8 +295,11 @@
             <div class="form-group">
                 <label for="withdraw-code">4-Digit Withdrawal Code</label>
                 <input type="text" id="withdraw-code" placeholder="Enter your 4-digit withdrawal code" maxlength="4" pattern="\d{4}">
+                <div class="attempt-warning" id="attempt-warning">
+                    Too many incorrect attempts. Please wait <span class="timer-display" id="timer-display"></span> before trying again.
+                </div>
                 <div class="text-muted">
-                    <a href="#" onclick="recoverWithdrawalCode(); return false;">Forgot your code?</a>
+                    <a href="#" onclick="recoverWithdrawalCode(); return false;">Forgot your code? Contact support</a>
                 </div>
             </div>
             <button class="btn btn-primary btn-block" id="submit-withdraw">
@@ -333,9 +307,6 @@
             </button>
             <div class="alert alert-info">
                 <i class="fas fa-info-circle"></i> Withdrawals are processed within 24 hours. Please ensure your wallet address is correct.
-            </div>
-            <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle"></i> A 10% fee will be deducted from your points balance upon successful withdrawal.
             </div>
         </div>
         
@@ -392,21 +363,19 @@
 
         // DOM elements
         const withdrawBalanceEl = document.getElementById('withdraw-balance');
-        const pointsBalanceEl = document.getElementById('points-balance');
         const withdrawAmountInput = document.getElementById('withdraw-amount');
         const walletAddressInput = document.getElementById('wallet-address');
         const withdrawCodeInput = document.getElementById('withdraw-code');
         const submitWithdrawBtn = document.getElementById('submit-withdraw');
         const withdrawHistoryEl = document.getElementById('withdraw-history');
-        const displayAmountEl = document.getElementById('display-amount');
-        const displayFeeEl = document.getElementById('display-fee');
-        const displayReceiveEl = document.getElementById('display-receive');
+        const attemptWarning = document.getElementById('attempt-warning');
+        const timerDisplay = document.getElementById('timer-display');
 
-        // Current user data
-        let currentUserData = {
-            earningsBalance: 0,
-            pointsBalance: 0
-        };
+        // Security variables
+        let failedAttempts = 0;
+        let lastAttemptTime = 0;
+        let lockoutTimer = null;
+        const attemptDelays = [30, 60, 120, 240, 480]; // 30s, 1m, 2m, 4m, 8m
 
         // Check authentication state
         auth.onAuthStateChanged((user) => {
@@ -417,36 +386,66 @@
                 loadWithdrawalHistory(user.uid);
                 setupWithdrawalListener(user.uid);
                 checkUserHasWithdrawalCode(user.uid);
+                
+                // Load attempt history from localStorage
+                const attemptData = localStorage.getItem(`withdrawAttempts_${user.uid}`);
+                if (attemptData) {
+                    const parsedData = JSON.parse(attemptData);
+                    failedAttempts = parsedData.failedAttempts || 0;
+                    lastAttemptTime = parsedData.lastAttemptTime || 0;
+                    
+                    // Check if user is still in lockout period
+                    const timeSinceLastAttempt = (Date.now() - lastAttemptTime) / 1000;
+                    const currentDelay = getCurrentDelay();
+                    
+                    if (timeSinceLastAttempt < currentDelay) {
+                        const remainingTime = Math.ceil(currentDelay - timeSinceLastAttempt);
+                        startLockoutTimer(remainingTime);
+                    }
+                }
             }
         });
 
-        // Calculate and display fee information
-        function calculateFee() {
-            const amount = parseFloat(withdrawAmountInput.value) || 0;
-            const feePoints = Math.ceil(amount * 0.10); // 10% fee in points
-            const receiveAmount = amount.toFixed(2);
+        function getCurrentDelay() {
+            const index = Math.min(failedAttempts - 1, attemptDelays.length - 1);
+            return attemptDelays[index];
+        }
+
+        function startLockoutTimer(seconds) {
+            clearTimeout(lockoutTimer);
             
-            displayAmountEl.textContent = `${receiveAmount} USDT`;
-            displayFeeEl.textContent = `${feePoints} Points`;
-            displayReceiveEl.textContent = `${receiveAmount} USDT`;
+            // Disable form inputs
+            withdrawCodeInput.disabled = true;
+            submitWithdrawBtn.disabled = true;
+            attemptWarning.style.display = 'block';
             
-            // Check if user has enough points for the fee
-            if (feePoints > currentUserData.pointsBalance) {
-                displayFeeEl.innerHTML = `<span class="text-danger">${feePoints} Points (Insufficient)</span>`;
-                submitWithdrawBtn.disabled = true;
-                submitWithdrawBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Not Enough Points for Fee';
-            } else {
-                displayFeeEl.innerHTML = `${feePoints} Points`;
+            let remaining = seconds;
+            updateTimerDisplay(remaining);
+            
+            lockoutTimer = setInterval(() => {
+                remaining--;
+                updateTimerDisplay(remaining);
                 
-                // Still check if they have enough balance
-                if (amount > currentUserData.earningsBalance) {
-                    submitWithdrawBtn.disabled = true;
-                    submitWithdrawBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Insufficient Balance';
-                } else {
+                if (remaining <= 0) {
+                    clearInterval(lockoutTimer);
+                    withdrawCodeInput.disabled = false;
                     submitWithdrawBtn.disabled = false;
-                    submitWithdrawBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Request Withdrawal';
+                    attemptWarning.style.display = 'none';
                 }
-            }
+            }, 1000);
+        }
+
+        function updateTimerDisplay(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            timerDisplay.textContent = `${minutes}m ${remainingSeconds}s`;
+        }
+
+        function saveAttemptData(userId) {
+            localStorage.setItem(`withdrawAttempts_${userId}`, JSON.stringify({
+                failedAttempts: failedAttempts,
+                lastAttemptTime: lastAttemptTime
+            }));
         }
 
         // Check if user has a withdrawal code
@@ -483,9 +482,38 @@
         // Verify withdrawal code
         async function verifyWithdrawalCode(userId, code) {
             try {
+                // Check if user is in lockout period
+                const timeSinceLastAttempt = (Date.now() - lastAttemptTime) / 1000;
+                const currentDelay = getCurrentDelay();
+                
+                if (timeSinceLastAttempt < currentDelay) {
+                    const remainingTime = Math.ceil(currentDelay - timeSinceLastAttempt);
+                    startLockoutTimer(remainingTime);
+                    showAlert(`Please wait ${remainingTime} seconds before trying again.`, 'danger');
+                    return false;
+                }
+                
                 const doc = await db.collection('withdrawalSecurity').doc(userId).get();
                 if (doc.exists) {
-                    return doc.data().code === code;
+                    const isValid = doc.data().code === code;
+                    
+                    if (!isValid) {
+                        failedAttempts++;
+                        lastAttemptTime = Date.now();
+                        saveAttemptData(userId);
+                        
+                        const delay = getCurrentDelay();
+                        startLockoutTimer(delay);
+                        
+                        showAlert(`Incorrect withdrawal code. Please wait ${delay} seconds before trying again.`, 'danger');
+                    } else {
+                        // Reset attempt counter on successful attempt
+                        failedAttempts = 0;
+                        lastAttemptTime = 0;
+                        saveAttemptData(userId);
+                    }
+                    
+                    return isValid;
                 }
                 return false;
             } catch (error) {
@@ -494,7 +522,7 @@
             }
         }
 
-        // Recover withdrawal code
+        // Recover withdrawal code - contact support
         async function recoverWithdrawalCode() {
             const user = auth.currentUser;
             if (!user) {
@@ -502,25 +530,20 @@
                 return;
             }
 
-            const email = prompt("Please enter your registered email address to recover your withdrawal code:");
-            if (!email || email !== user.email) {
-                showAlert('Invalid email address provided', 'danger');
-                return;
-            }
-
-            try {
-                const doc = await db.collection('withdrawalSecurity').doc(user.uid).get();
-                if (doc.exists) {
-                    showModal(`Your withdrawal code is: <strong>${doc.data().code}</strong><br><br>
-                    Please save this code securely. You will need it for all future withdrawals.`);
-                } else {
-                    showAlert('No withdrawal code found for your account. A new one will be generated.', 'warning');
-                    generateWithdrawalCode(user.uid);
-                }
-            } catch (error) {
-                console.error("Error recovering withdrawal code:", error);
-                showAlert('Error recovering withdrawal code. Please try again.', 'danger');
-            }
+            showModal(`
+                <h3>Withdrawal Code Assistance</h3>
+                <p>For security reasons, we cannot display your withdrawal code directly.</p>
+                <p>Please contact our support team with the following information:</p>
+                <ul>
+                    <li>Your registered email: <strong>${user.email}</strong></li>
+                    <li>Account creation date</li>
+                    <li>Recent transaction details</li>
+                </ul>
+                <p>Our team will verify your identity and assist you within 24 hours.</p>
+                <button class="btn btn-primary" onclick="window.location.href='mailto:support@videocall.com'">
+                    <i class="fas fa-envelope"></i> Contact Support
+                </button>
+            `);
         }
 
         // Show modal dialog
@@ -557,13 +580,7 @@
                     if (doc.exists) {
                         const userData = doc.data();
                         const availableBalance = userData.taskEarnings || 0;
-                        const availablePoints = userData.points || 0;
-                        
-                        currentUserData.earningsBalance = availableBalance;
-                        currentUserData.pointsBalance = availablePoints;
-                        
                         withdrawBalanceEl.textContent = availableBalance.toFixed(2);
-                        pointsBalanceEl.textContent = availablePoints;
                         
                         // Disable submit button if balance is less than minimum
                         submitWithdrawBtn.disabled = availableBalance < 15;
@@ -621,7 +638,6 @@
                             <div>
                                 <div class="history-amount">-${parseFloat(withdrawal.amount).toFixed(2)} USDT</div>
                                 <div class="history-date">${formattedDate}</div>
-                                ${withdrawal.feePoints ? `<div class="text-muted">Fee: ${withdrawal.feePoints} Points</div>` : ''}
                             </div>
                             <div>
                                 <span class="badge ${statusClass}">${statusText}</span>
@@ -671,17 +687,13 @@
                 return;
             }
             
-            // Calculate fee
-            const feePoints = Math.ceil(amount * 0.10); // 10% fee in points
-            
             // Verify withdrawal code
             const isCodeValid = await verifyWithdrawalCode(user.uid, code);
             if (!isCodeValid) {
-                showAlert('Invalid withdrawal code. Please try again.', 'danger');
                 return;
             }
             
-            // Check available balance and points
+            // Check available balance
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (!userDoc.exists) {
@@ -691,15 +703,9 @@
                 
                 const userData = userDoc.data();
                 const availableBalance = userData.taskEarnings || 0;
-                const availablePoints = userData.points || 0;
                 
                 if (amount > availableBalance) {
                     showAlert('Insufficient balance for this withdrawal', 'danger');
-                    return;
-                }
-                
-                if (feePoints > availablePoints) {
-                    showAlert('Insufficient points to cover the withdrawal fee', 'danger');
                     return;
                 }
                 
@@ -708,21 +714,15 @@
                 submitWithdrawBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
                 
                 // Create withdrawal record in Realtime DB for admin approval
-                const withdrawalRef = await rdb.ref('withdrawals').push({
+                await rdb.ref('withdrawals').push({
                     userId: user.uid,
                     userEmail: user.email || 'no-email',
                     amount: amount,
                     walletAddress: walletAddress,
                     status: 'pending',
-                    feePoints: feePoints,
                     timestamp: Date.now(),
                     processedAt: null,
                     processedBy: null
-                });
-                
-                // Store the withdrawal key in Firestore for tracking
-                await db.collection('users').doc(user.uid).update({
-                    pendingWithdrawals: firebase.firestore.FieldValue.arrayUnion(withdrawalRef.key)
                 });
                 
                 showAlert('Withdrawal request submitted for admin approval!', 'success');
@@ -761,7 +761,6 @@
 
         // Event listeners
         submitWithdrawBtn.addEventListener('click', submitWithdrawal);
-        withdrawAmountInput.addEventListener('input', calculateFee);
     </script>
 </body>
 </html>
