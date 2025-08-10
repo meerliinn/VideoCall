@@ -1,151 +1,109 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Signup/Login - VideoCall</title>
+    <title>Referral Notifications</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            padding: 20px;
             background-color: #f4f4f4;
         }
         .container {
+            max-width: 800px;
+            margin: 0 auto;
             background-color: #fff;
-            padding: 30px;
+            padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            width: 350px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        .tab-container {
-            display: flex;
-            margin-bottom: 20px;
+        h1 {
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
         }
-        .tab {
-            flex: 1;
-            padding: 10px;
-            text-align: center;
-            cursor: pointer;
-            background: #f0f0f0;
-            border: none;
-        }
-        .tab.active {
-            background: #007bff;
-            color: white;
-        }
-        .form-container {
-            display: none;
-        }
-        .form-container.active {
-            display: block;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border: 1px solid #ddd;
+        .notification {
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #f9f9f9;
+            border-left: 4px solid #007bff;
             border-radius: 4px;
-            box-sizing: border-box;
+            position: relative;
+        }
+        .notification.unread {
+            background-color: #e7f3ff;
+            border-left-color: #0056b3;
+        }
+        .notification .email {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .notification .time {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .notification .actions {
+            position: absolute;
+            right: 15px;
+            top: 15px;
         }
         button {
-            width: 100%;
-            padding: 10px;
+            padding: 5px 10px;
             background-color: #007bff;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            margin-top: 10px;
         }
         button:hover {
             background-color: #0056b3;
         }
-        #message, #login-message {
-            margin: 15px 0;
+        .claim-btn {
+            background-color: #28a745;
+        }
+        .claim-btn:hover {
+            background-color: #218838;
+        }
+        .no-notifications {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+        .current-user {
+            background-color: #e7f3ff;
             padding: 10px;
             border-radius: 4px;
-            text-align: center;
+            margin-bottom: 20px;
         }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
+        .status-badge {
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            background-color: #6c757d;
+            color: white;
+            margin-left: 8px;
         }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
+        .status-badge.claimed {
+            background-color: #28a745;
         }
-        .name-fields {
-            display: flex;
-            gap: 10px;
+        .status-badge.pending {
+            background-color: #ffc107;
+            color: #212529;
         }
-        .name-fields input {
-            width: 100%;
-        }
-        .captcha-container {
-            display: flex;
-            align-items: center;
-            margin: 15px 0;
-            gap: 10px;
-        }
-        .captcha-challenge {
-            font-size: 18px;
-            font-weight: bold;
-            padding: 8px;
-            background: #f0f0f0;
-            border-radius: 4px;
-            min-width: 80px;
-            text-align: center;
-        }
-        #captcha-input {
-            flex: 1;
-        }
-        .refresh-captcha {
-            background: none;
-            border: none;
-            color: #007bff;
-            cursor: pointer;
-            font-size: 18px;
+        .user-details {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #555;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="tab-container">
-            <button class="tab active" onclick="openTab('signup')">Sign Up</button>
-            <button class="tab" onclick="openTab('login')">Login</button>
-        </div>
-
-        <div id="signup-form" class="form-container active">
-            <h2>Create Account</h2>
-            <div id="message"></div>
-            
-            <div class="name-fields">
-                <input type="text" id="first-name" placeholder="First Name" required>
-                <input type="text" id="last-name" placeholder="Last Name" required>
-            </div>
-            
-            <input type="email" id="signup-email" placeholder="Email" required>
-            <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required minlength="6">
-            <input type="text" id="phone" placeholder="Phone Number (optional)">
-            <input type="text" id="admin-uid" placeholder="Admin UID (optional)">
-            
-            <div class="captcha-container">
-                <div class="captcha-challenge" id="captcha-challenge"></div>
-                <button type="button" class="refresh-captcha" onclick="generateCaptcha()" title="Refresh CAPTCHA">↻</button>
-                <input type="text" id="captcha-input" placeholder="Enter the answer" required>
-            </div>
-            
-            <button onclick="signUp()">Sign Up</button>
-        </div>
-
-        <div id="login-form" class="form-container">
-            <h2>Welcome Back</h2>
-            <div id="login-message"></div>
-            <input type="email" id="login-email" placeholder="Email" required>
-            <input type="password" id="login-password" placeholder="Password" required>
-            <button onclick="login()">Login</button>
+        <h1>Referral Notifications</h1>
+        <div id="current-user" class="current-user"></div>
+        <div id="notifications-container">
+            <div class="no-notifications">Loading notifications...</div>
         </div>
     </div>
 
@@ -170,218 +128,160 @@
         const auth = firebase.auth();
         const rdb = firebase.database();
         const db = firebase.firestore();
+        let currentAdminUid = null;
 
-        // CAPTCHA variables
-        let captchaAnswer;
-        
-        // Generate CAPTCHA challenge
-        function generateCaptcha() {
-            const num1 = Math.floor(Math.random() * 10) + 1;
-            const num2 = Math.floor(Math.random() * 10) + 1;
-            const operators = ['+', '-', '*'];
-            const operator = operators[Math.floor(Math.random() * operators.length)];
-            
-            let challenge, answer;
-            switch(operator) {
-                case '+': answer = num1 + num2; challenge = `${num1} + ${num2} = ?`; break;
-                case '-': answer = num1 - num2; challenge = `${num1} - ${num2} = ?`; break;
-                case '*': answer = num1 * num2; challenge = `${num1} × ${num2} = ?`; break;
-            }
-            
-            document.getElementById('captcha-challenge').textContent = challenge;
-            captchaAnswer = answer;
-        }
-        
-        // Generate CAPTCHA on page load
-        generateCaptcha();
-
-        // Tab switching
-        function openTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.form-container').forEach(form => form.classList.remove('active'));
-            document.querySelector(`.tab[onclick="openTab('${tabName}')"]`).classList.add('active');
-            document.getElementById(`${tabName}-form`).classList.add('active');
-        }
-
-        // Generate a referral code
-        function generateReferralCode() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let result = '';
-            for (let i = 0; i < 8; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        }
-
-        // Sign up function - Enhanced with complete data storage
-        async function signUp() {
-            const firstName = document.getElementById('first-name').value.trim();
-            const lastName = document.getElementById('last-name').value.trim();
-            const email = document.getElementById('signup-email').value.trim();
-            const password = document.getElementById('signup-password').value;
-            const phone = document.getElementById('phone').value.trim();
-            const adminUid = document.getElementById('admin-uid').value.trim();
-            const userCaptchaInput = document.getElementById('captcha-input').value;
-            
-            // Validate CAPTCHA
-            if (parseInt(userCaptchaInput) !== captchaAnswer) {
-                showMessage('CAPTCHA verification failed. Please try again.', 'error');
-                generateCaptcha();
-                document.getElementById('captcha-input').value = '';
-                return;
-            }
-
-            try {
-                // Create user
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                const user = userCredential.user;
-                const now = new Date();
-                const referralCode = generateReferralCode();
-                
-                // Create complete user data object for Firestore
-                const userData = {
-                    firstName: firstName,
-                    lastName: lastName,
-                    fullName: `${firstName} ${lastName}`,
-                    email: email,
-                    phone: phone || '',
-                    createdAt: firebase.firestore.Timestamp.fromDate(now),
-                    lastUpdated: firebase.firestore.Timestamp.fromDate(now),
-                    status: 'active',
-                    referralCode: referralCode,
-                    depositBalance: 0,
-                    taskEarnings: 0,
-                    points: 0,
-                    totalEarnings: 0,
-                    lastLogin: null,
-                    emailVerified: false,
-                    adminUid: adminUid || null
-                };
-
-                // Save complete user data to Firestore
-                await db.collection('users').doc(user.uid).set(userData);
-                
-                // Create optimized user data for Realtime Database
-                const rtdbUserData = {
-                    email: email,
-                    firstName: firstName,
-                    lastName: lastName,
-                    fullName: `${firstName} ${lastName}`,
-                    status: 'active',
-                    lastLogin: null,
-                    createdAt: now.getTime(),
-                    referralCode: referralCode,
-                    points: 0,
-                    adminUid: adminUid || null
-                };
-
-                // Save to Realtime Database
-                await rdb.ref('users/' + user.uid).set(rtdbUserData);
-
-                // Notify admin if UID was provided (enhanced notification)
-                if (adminUid) {
-                    const notificationData = {
-                        type: 'new_signup',
-                        email: email,
-                        userId: user.uid,
-                        firstName: firstName,
-                        lastName: lastName,
-                        timestamp: Date.now(),
-                        read: false,
-                        claimed: false,
-                        referralCode: referralCode
-                    };
-                    
-                    // Create notification in admin_notifications
-                    const newNotificationRef = rdb.ref('admin_notifications/' + adminUid).push();
-                    await newNotificationRef.set(notificationData);
-                    
-                    // Also store in Firestore for backup
-                    await db.collection('admin_notifications').doc(newNotificationRef.key).set({
-                        ...notificationData,
-                        adminUid: adminUid,
-                        notificationId: newNotificationRef.key
-                    });
-                }
-
-                // Send verification email
-                await user.sendEmailVerification();
-                
-                // Update that email verification was sent
-                await db.collection('users').doc(user.uid).update({
-                    verificationSentAt: firebase.firestore.Timestamp.fromDate(new Date())
-                });
-
-                showMessage('Account created! Check your email for verification.', 'success');
-                
-                // Redirect after 3 seconds
-                setTimeout(() => {
-                    window.location.href = 'home.html';
-                }, 3000);
-                
-            } catch (error) {
-                console.error("Signup error:", error);
-                showMessage(error.message, 'error');
-            } finally {
-                generateCaptcha();
-                document.getElementById('captcha-input').value = '';
-            }
-        }
-
-        // Enhanced login function
-        async function login() {
-            const email = document.getElementById('login-email').value.trim();
-            const password = document.getElementById('login-password').value;
-
-            try {
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                const user = userCredential.user;
-                const now = new Date();
-                
-                // Update last login time in Firestore
-                await db.collection('users').doc(user.uid).update({
-                    lastLogin: firebase.firestore.Timestamp.fromDate(now),
-                    status: 'active'
-                });
-                
-                // Update last login time in Realtime Database
-                await rdb.ref('users/' + user.uid).update({
-                    lastLogin: now.getTime(),
-                    status: 'active'
-                });
-                
-                showLoginMessage('Login successful! Redirecting...', 'success');
-                
-                // Redirect after 1.5 seconds
-                setTimeout(() => {
-                    window.location.href = 'home.html';
-                }, 1500);
-                
-            } catch (error) {
-                console.error("Login error:", error);
-                showLoginMessage(error.message, 'error');
-            }
-        }
-
-        // Message display functions
-        function showMessage(message, type) {
-            const msgDiv = document.getElementById('message');
-            msgDiv.textContent = message;
-            msgDiv.className = type;
-        }
-
-        function showLoginMessage(message, type) {
-            const msgDiv = document.getElementById('login-message');
-            msgDiv.textContent = message;
-            msgDiv.className = type;
-        }
-
-        // Check auth state - redirect if already logged in
+        // Check auth state
         auth.onAuthStateChanged((user) => {
             if (user) {
-                window.location.href = 'home.html';
+                currentAdminUid = user.uid;
+                document.getElementById('current-user').innerHTML = `
+                    <strong>Logged in as:</strong> ${user.email}<br>
+                    <strong>Your UID:</strong> ${user.uid}
+                `;
+                loadNotifications(user.uid);
+            } else {
+                window.location.href = 'sign.html?tab=login';
             }
         });
+
+        // Load notifications
+        function loadNotifications(adminUid) {
+            const container = document.getElementById('notifications-container');
+            
+            // Listen for notifications in admin_notifications path
+            rdb.ref('admin_notifications/' + adminUid).orderByChild('timestamp').on('value', (snapshot) => {
+                if (!snapshot.exists()) {
+                    container.innerHTML = '<div class="no-notifications">No notifications yet</div>';
+                    return;
+                }
+
+                const notificationList = [];
+                snapshot.forEach(childSnapshot => {
+                    notificationList.push({
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    });
+                });
+                
+                // Sort by timestamp (newest first)
+                notificationList.sort((a, b) => b.timestamp - a.timestamp);
+                
+                container.innerHTML = '';
+                notificationList.forEach(notif => {
+                    const div = document.createElement('div');
+                    div.className = `notification ${notif.read ? '' : 'unread'}`;
+                    const date = new Date(notif.timestamp);
+                    
+                    // Check if this referred user has purchased any packages
+                    checkUserPurchases(notif.userId).then(hasPurchased => {
+                        const status = notif.claimed ? 'claimed' : (hasPurchased ? 'pending' : 'unclaimed');
+                        
+                        div.innerHTML = `
+                            <div>
+                                <span class="email">${notif.email}</span> signed up using your UID
+                                <div class="user-details">
+                                    <div class="time">${date.toLocaleString()}</div>
+                                    <div>User ID: ${notif.userId}</div>
+                                    ${notif.firstName ? `<div>Name: ${notif.firstName} ${notif.lastName || ''}</div>` : ''}
+                                </div>
+                                <span class="status-badge ${status}">
+                                    ${status === 'claimed' ? '✓ Claimed' : 
+                                     status === 'pending' ? '★ Ready to Claim' : '⌛ Waiting for Purchase'}
+                                </span>
+                            </div>
+                            <div class="actions">
+                                ${!notif.claimed && hasPurchased ? 
+                                    `<button class="claim-btn" onclick="claimReward('${adminUid}', '${notif.id}', '${notif.userId}')">Claim Reward</button>` : 
+                                    notif.claimed ? '✓ Claimed' : ''}
+                            </div>
+                        `;
+                        
+                        container.appendChild(div);
+                    });
+                });
+            });
+        }
+
+        // Check if a user has purchased any packages
+        async function checkUserPurchases(userId) {
+            try {
+                const snapshot = await db.collection('investments')
+                    .where('userId', '==', userId)
+                    .limit(1)
+                    .get();
+                
+                return !snapshot.empty;
+            } catch (error) {
+                console.error("Error checking user purchases:", error);
+                return false;
+            }
+        }
+
+        // Get the first package price purchased by a user
+        async function getFirstPurchaseAmount(userId) {
+            try {
+                const snapshot = await db.collection('investments')
+                    .where('userId', '==', userId)
+                    .orderBy('purchaseDate', 'asc')
+                    .limit(1)
+                    .get();
+                
+                if (snapshot.empty) return 0;
+                return snapshot.docs[0].data().amount || 0;
+            } catch (error) {
+                console.error("Error getting first purchase amount:", error);
+                return 0;
+            }
+        }
+
+        // Claim reward for a referred user's first purchase
+        async function claimReward(adminUid, notificationId, referredUserId) {
+            try {
+                // Get the first purchase amount
+                const purchaseAmount = await getFirstPurchaseAmount(referredUserId);
+                if (purchaseAmount <= 0) {
+                    alert('This user has not made any purchases yet.');
+                    return;
+                }
+                
+                // Calculate 10% of the purchase amount as points
+                const pointsToAward = Math.floor(purchaseAmount * 0.1);
+                
+                // Confirm with admin
+                if (!confirm(`Claim ${pointsToAward} points for ${purchaseAmount} USDT purchase?`)) {
+                    return;
+                }
+                
+                // Update notification to mark as claimed
+                await rdb.ref(`admin_notifications/${adminUid}/${notificationId}`).update({
+                    claimed: true,
+                    claimedAt: Date.now(),
+                    pointsAwarded: pointsToAward,
+                    purchaseAmount: purchaseAmount,
+                    read: true
+                });
+                
+                // Award points to admin in Firestore
+                await db.collection('users').doc(adminUid).update({
+                    points: firebase.firestore.FieldValue.increment(pointsToAward),
+                    totalEarnings: firebase.firestore.FieldValue.increment(pointsToAward)
+                });
+                
+                // Also update in Realtime Database
+                await rdb.ref(`users/${adminUid}`).update({
+                    points: firebase.database.ServerValue.increment(pointsToAward)
+                });
+                
+                // Reload notifications
+                loadNotifications(adminUid);
+                
+                alert(`Successfully claimed ${pointsToAward} points!`);
+                
+            } catch (error) {
+                console.error("Error claiming reward:", error);
+                alert('Error claiming reward. Please try again.');
+            }
+        }
     </script>
 </body>
 </html>
