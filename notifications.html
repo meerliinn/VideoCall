@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Invitation Notification List</title>
+    <title>Referral Notifications</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -91,12 +91,21 @@
             background-color: #ffc107;
             color: #212529;
         }
+        .debug-info {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Admin Dashboard</h1>
+        <h1>Referral Notifications</h1>
         <div id="current-user" class="current-user"></div>
+        <div id="debug-info" class="debug-info" style="display:none;"></div>
         <div id="notifications-container">
             <div class="no-notifications">Loading notifications...</div>
         </div>
@@ -125,6 +134,14 @@
         const db = firebase.firestore();
         let currentAdminUid = null;
 
+        // Debug function
+        function debugLog(message) {
+            const debugDiv = document.getElementById('debug-info');
+            debugDiv.style.display = 'block';
+            debugDiv.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+            console.log(message);
+        }
+
         // Check auth state
         auth.onAuthStateChanged((user) => {
             if (user) {
@@ -133,8 +150,10 @@
                     <strong>Logged in as:</strong> ${user.email}<br>
                     <strong>Your UID:</strong> ${user.uid}
                 `;
+                debugLog(`User authenticated: ${user.email}`);
                 loadNotifications(user.uid);
             } else {
+                debugLog("No user logged in, redirecting to sign in");
                 window.location.href = 'sign.html?tab=login';
             }
         });
@@ -142,29 +161,45 @@
         // Load notifications
         function loadNotifications(adminUid) {
             const container = document.getElementById('notifications-container');
+            debugLog(`Loading notifications for admin: ${adminUid}`);
             
-            rdb.ref('admin_notifications/' + adminUid).orderByChild('timestamp').on('value', (snapshot) => {
+            // Listen for notifications in admin_notifications path
+            const notificationsRef = rdb.ref('admin_notifications/' + adminUid);
+            
+            notificationsRef.orderByChild('timestamp').on('value', (snapshot) => {
+                debugLog(`Received notification data snapshot`);
+                
                 if (!snapshot.exists()) {
+                    debugLog("No notifications found in database");
                     container.innerHTML = '<div class="no-notifications">No notifications yet</div>';
                     return;
                 }
 
                 const notificationList = [];
                 snapshot.forEach(childSnapshot => {
-                    notificationList.push({
-                        id: childSnapshot.key,
-                        ...childSnapshot.val()
-                    });
+                    const notifData = childSnapshot.val();
+                    notifData.id = childSnapshot.key;
+                    notificationList.push(notifData);
+                    debugLog(`Found notification: ${notifData.email} (${notifData.id})`);
                 });
                 
                 // Sort by timestamp (newest first)
                 notificationList.sort((a, b) => b.timestamp - a.timestamp);
                 
-                container.innerHTML = '';
+                // Clear container only if we have notifications
+                if (notificationList.length > 0) {
+                    container.innerHTML = '';
+                } else {
+                    container.innerHTML = '<div class="no-notifications">No notifications yet</div>';
+                    return;
+                }
+                
                 notificationList.forEach(notif => {
                     const div = document.createElement('div');
                     div.className = `notification ${notif.read ? '' : 'unread'}`;
                     const date = new Date(notif.timestamp);
+                    
+                    debugLog(`Processing notification for ${notif.email}`);
                     
                     // Check if this referred user has purchased any packages
                     checkUserPurchases(notif.userId).then(hasPurchased => {
@@ -172,12 +207,12 @@
                         
                         div.innerHTML = `
                             <div>
-                                <span class="email">${notif.email}</span> signed up using your UID
+                                <span class="email">${notif.email || 'Unknown user'}</span> signed up using your UID
                                 <div class="time">${date.toLocaleString()}</div>
-                                <div style="font-size: 0.8em; color: #999;">User ID: ${notif.userId}</div>
+                                <div>User ID: ${notif.userId}</div>
                                 <span class="status-badge ${status}">
-                                    ${status === 'claimed' ? 'Claimed' : 
-                                     status === 'pending' ? 'Ready to Claim' : 'Waiting for Purchase'}
+                                    ${status === 'claimed' ? '✓ Claimed' : 
+                                     status === 'pending' ? '★ Ready to Claim' : '⌛ Waiting for Purchase'}
                                 </span>
                             </div>
                             <div class="actions">
@@ -186,11 +221,16 @@
                                     notif.claimed ? '✓ Claimed' : ''}
                             </div>
                         `;
+                        
+                        container.appendChild(div);
+                        debugLog(`Displayed notification for ${notif.email}`);
+                    }).catch(error => {
+                        debugLog(`Error processing notification: ${error}`);
+                        console.error("Error processing notification:", error);
                     });
-                    
-                    container.appendChild(div);
                 });
             }, (error) => {
+                debugLog(`Error loading notifications: ${error.message}`);
                 console.error("Error loading notifications:", error);
                 container.innerHTML = `<div class="no-notifications">Error loading notifications: ${error.message}</div>`;
             });
@@ -199,13 +239,17 @@
         // Check if a user has purchased any packages
         async function checkUserPurchases(userId) {
             try {
+                debugLog(`Checking purchases for user: ${userId}`);
                 const snapshot = await db.collection('investments')
                     .where('userId', '==', userId)
                     .limit(1)
                     .get();
                 
-                return !snapshot.empty;
+                const hasPurchases = !snapshot.empty;
+                debugLog(`Purchase check result for ${userId}: ${hasPurchases}`);
+                return hasPurchases;
             } catch (error) {
+                debugLog(`Error checking purchases: ${error}`);
                 console.error("Error checking user purchases:", error);
                 return false;
             }
@@ -214,15 +258,23 @@
         // Get the first package price purchased by a user
         async function getFirstPurchaseAmount(userId) {
             try {
+                debugLog(`Getting first purchase amount for user: ${userId}`);
                 const snapshot = await db.collection('investments')
                     .where('userId', '==', userId)
                     .orderBy('purchaseDate', 'asc')
                     .limit(1)
                     .get();
                 
-                if (snapshot.empty) return 0;
-                return snapshot.docs[0].data().amount || 0;
+                if (snapshot.empty) {
+                    debugLog(`No purchases found for user: ${userId}`);
+                    return 0;
+                }
+                
+                const amount = snapshot.docs[0].data().amount || 0;
+                debugLog(`First purchase amount for ${userId}: ${amount} USDT`);
+                return amount;
             } catch (error) {
+                debugLog(`Error getting purchase amount: ${error}`);
                 console.error("Error getting first purchase amount:", error);
                 return 0;
             }
@@ -231,18 +283,23 @@
         // Claim reward for a referred user's first purchase
         async function claimReward(adminUid, notificationId, referredUserId) {
             try {
+                debugLog(`Starting claim process for notification: ${notificationId}`);
+                
                 // Get the first purchase amount
                 const purchaseAmount = await getFirstPurchaseAmount(referredUserId);
                 if (purchaseAmount <= 0) {
+                    debugLog(`No valid purchase amount for user: ${referredUserId}`);
                     alert('This user has not made any purchases yet.');
                     return;
                 }
                 
                 // Calculate 10% of the purchase amount as points
                 const pointsToAward = Math.floor(purchaseAmount * 0.1);
+                debugLog(`Calculated points to award: ${pointsToAward}`);
                 
                 // Confirm with admin
                 if (!confirm(`Claim ${pointsToAward} points for ${purchaseAmount} USDT purchase?`)) {
+                    debugLog(`Claim canceled by user`);
                     return;
                 }
                 
@@ -251,28 +308,40 @@
                     claimed: true,
                     claimedAt: Date.now(),
                     pointsAwarded: pointsToAward,
-                    purchaseAmount: purchaseAmount
+                    purchaseAmount: purchaseAmount,
+                    read: true
                 });
+                debugLog(`Notification marked as claimed in database`);
                 
                 // Award points to admin
                 await db.collection('users').doc(adminUid).update({
                     points: firebase.firestore.FieldValue.increment(pointsToAward)
                 });
+                debugLog(`Points awarded in Firestore`);
                 
                 // Also update in Realtime Database if needed
                 await rdb.ref(`users/${adminUid}/points`).transaction((currentPoints) => {
                     return (currentPoints || 0) + pointsToAward;
                 });
+                debugLog(`Points awarded in Realtime Database`);
                 
                 // Reload notifications
                 loadNotifications(adminUid);
+                debugLog(`Notifications reloaded`);
                 
                 alert(`Successfully claimed ${pointsToAward} points!`);
                 
             } catch (error) {
+                debugLog(`Error in claim process: ${error}`);
                 console.error("Error claiming reward:", error);
                 alert('Error claiming reward. Please try again.');
             }
+        }
+
+        // Enable debug mode with URL parameter ?debug=true
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('debug') === 'true') {
+            document.getElementById('debug-info').style.display = 'block';
         }
     </script>
 </body>
