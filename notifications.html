@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Invitation Notification List</title>
+    <title>Referral Notifications</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -91,11 +91,16 @@
             background-color: #ffc107;
             color: #212529;
         }
+        .user-details {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #555;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Admin Dashboard</h1>
+        <h1>Referral Notifications</h1>
         <div id="current-user" class="current-user"></div>
         <div id="notifications-container">
             <div class="no-notifications">Loading notifications...</div>
@@ -143,6 +148,7 @@
         function loadNotifications(adminUid) {
             const container = document.getElementById('notifications-container');
             
+            // Listen for notifications in admin_notifications path
             rdb.ref('admin_notifications/' + adminUid).orderByChild('timestamp').on('value', (snapshot) => {
                 if (!snapshot.exists()) {
                     container.innerHTML = '<div class="no-notifications">No notifications yet</div>';
@@ -173,11 +179,14 @@
                         div.innerHTML = `
                             <div>
                                 <span class="email">${notif.email}</span> signed up using your UID
-                                <div class="time">${date.toLocaleString()}</div>
-                                <div style="font-size: 0.8em; color: #999;">User ID: ${notif.userId}</div>
+                                <div class="user-details">
+                                    <div class="time">${date.toLocaleString()}</div>
+                                    <div>User ID: ${notif.userId}</div>
+                                    ${notif.firstName ? `<div>Name: ${notif.firstName} ${notif.lastName || ''}</div>` : ''}
+                                </div>
                                 <span class="status-badge ${status}">
-                                    ${status === 'claimed' ? 'Claimed' : 
-                                     status === 'pending' ? 'Ready to Claim' : 'Waiting for Purchase'}
+                                    ${status === 'claimed' ? '✓ Claimed' : 
+                                     status === 'pending' ? '★ Ready to Claim' : '⌛ Waiting for Purchase'}
                                 </span>
                             </div>
                             <div class="actions">
@@ -186,13 +195,10 @@
                                     notif.claimed ? '✓ Claimed' : ''}
                             </div>
                         `;
+                        
+                        container.appendChild(div);
                     });
-                    
-                    container.appendChild(div);
                 });
-            }, (error) => {
-                console.error("Error loading notifications:", error);
-                container.innerHTML = `<div class="no-notifications">Error loading notifications: ${error.message}</div>`;
             });
         }
 
@@ -251,17 +257,19 @@
                     claimed: true,
                     claimedAt: Date.now(),
                     pointsAwarded: pointsToAward,
-                    purchaseAmount: purchaseAmount
+                    purchaseAmount: purchaseAmount,
+                    read: true
                 });
                 
-                // Award points to admin
+                // Award points to admin in Firestore
                 await db.collection('users').doc(adminUid).update({
-                    points: firebase.firestore.FieldValue.increment(pointsToAward)
+                    points: firebase.firestore.FieldValue.increment(pointsToAward),
+                    totalEarnings: firebase.firestore.FieldValue.increment(pointsToAward)
                 });
                 
-                // Also update in Realtime Database if needed
-                await rdb.ref(`users/${adminUid}/points`).transaction((currentPoints) => {
-                    return (currentPoints || 0) + pointsToAward;
+                // Also update in Realtime Database
+                await rdb.ref(`users/${adminUid}`).update({
+                    points: firebase.database.ServerValue.increment(pointsToAward)
                 });
                 
                 // Reload notifications
