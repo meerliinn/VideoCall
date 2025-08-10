@@ -213,14 +213,14 @@
             return result;
         }
 
-        // Sign up function
+        // Sign up function - Enhanced with complete data storage
         async function signUp() {
-            const firstName = document.getElementById('first-name').value;
-            const lastName = document.getElementById('last-name').value;
-            const email = document.getElementById('signup-email').value;
+            const firstName = document.getElementById('first-name').value.trim();
+            const lastName = document.getElementById('last-name').value.trim();
+            const email = document.getElementById('signup-email').value.trim();
             const password = document.getElementById('signup-password').value;
-            const phone = document.getElementById('phone').value;
-            const adminUid = document.getElementById('admin-uid').value;
+            const phone = document.getElementById('phone').value.trim();
+            const adminUid = document.getElementById('admin-uid').value.trim();
             const userCaptchaInput = document.getElementById('captcha-input').value;
             
             // Validate CAPTCHA
@@ -238,50 +238,89 @@
                 const now = new Date();
                 const referralCode = generateReferralCode();
                 
-                // Create user data object
+                // Create complete user data object for Firestore
                 const userData = {
                     firstName: firstName,
                     lastName: lastName,
+                    fullName: `${firstName} ${lastName}`,
                     email: email,
                     phone: phone || '',
                     createdAt: firebase.firestore.Timestamp.fromDate(now),
+                    lastUpdated: firebase.firestore.Timestamp.fromDate(now),
                     status: 'active',
                     referralCode: referralCode,
                     depositBalance: 0,
                     taskEarnings: 0,
                     points: 0,
-                    lastLogin: null
+                    totalEarnings: 0,
+                    lastLogin: null,
+                    emailVerified: false,
+                    adminUid: adminUid || null
                 };
 
-                // Save user data to Firestore
+                // Save complete user data to Firestore
                 await db.collection('users').doc(user.uid).set(userData);
                 
-                // Save basic user data to RTDB (for real-time features if needed)
-                await rdb.ref('users/' + user.uid).set({
+                // Create optimized user data for Realtime Database
+                const rtdbUserData = {
                     email: email,
                     firstName: firstName,
                     lastName: lastName,
+                    fullName: `${firstName} ${lastName}`,
                     status: 'active',
-                    lastLogin: null
-                });
+                    lastLogin: null,
+                    createdAt: now.getTime(),
+                    referralCode: referralCode,
+                    points: 0,
+                    adminUid: adminUid || null
+                };
 
-                // Notify admin if UID was provided
+                // Save to Realtime Database
+                await rdb.ref('users/' + user.uid).set(rtdbUserData);
+
+                // Notify admin if UID was provided (enhanced notification)
                 if (adminUid) {
-                    await rdb.ref('admin_notifications/' + adminUid).push({
+                    const notificationData = {
                         type: 'new_signup',
                         email: email,
                         userId: user.uid,
+                        firstName: firstName,
+                        lastName: lastName,
                         timestamp: Date.now(),
-                        read: false
+                        read: false,
+                        claimed: false,
+                        referralCode: referralCode
+                    };
+                    
+                    // Create notification in admin_notifications
+                    const newNotificationRef = rdb.ref('admin_notifications/' + adminUid).push();
+                    await newNotificationRef.set(notificationData);
+                    
+                    // Also store in Firestore for backup
+                    await db.collection('admin_notifications').doc(newNotificationRef.key).set({
+                        ...notificationData,
+                        adminUid: adminUid,
+                        notificationId: newNotificationRef.key
                     });
                 }
 
                 // Send verification email
                 await user.sendEmailVerification();
+                
+                // Update that email verification was sent
+                await db.collection('users').doc(user.uid).update({
+                    verificationSentAt: firebase.firestore.Timestamp.fromDate(new Date())
+                });
+
                 showMessage('Account created! Check your email for verification.', 'success');
-                setTimeout(() => window.location.href = 'home.html', 3000);
+                
+                // Redirect after 3 seconds
+                setTimeout(() => {
+                    window.location.href = 'home.html';
+                }, 3000);
                 
             } catch (error) {
+                console.error("Signup error:", error);
                 showMessage(error.message, 'error');
             } finally {
                 generateCaptcha();
@@ -289,9 +328,9 @@
             }
         }
 
-        // Login function
+        // Enhanced login function
         async function login() {
-            const email = document.getElementById('login-email').value;
+            const email = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value;
 
             try {
@@ -299,18 +338,27 @@
                 const user = userCredential.user;
                 const now = new Date();
                 
-                // Update last login time in both Firestore and RTDB
+                // Update last login time in Firestore
                 await db.collection('users').doc(user.uid).update({
-                    lastLogin: firebase.firestore.Timestamp.fromDate(now)
+                    lastLogin: firebase.firestore.Timestamp.fromDate(now),
+                    status: 'active'
                 });
                 
+                // Update last login time in Realtime Database
                 await rdb.ref('users/' + user.uid).update({
-                    lastLogin: Date.now()
+                    lastLogin: now.getTime(),
+                    status: 'active'
                 });
                 
                 showLoginMessage('Login successful! Redirecting...', 'success');
-                setTimeout(() => window.location.href = 'home.html', 1500);
+                
+                // Redirect after 1.5 seconds
+                setTimeout(() => {
+                    window.location.href = 'home.html';
+                }, 1500);
+                
             } catch (error) {
+                console.error("Login error:", error);
                 showLoginMessage(error.message, 'error');
             }
         }
@@ -328,13 +376,12 @@
             msgDiv.className = type;
         }
 
-        // Firebase auth check for sign.html - if logged in, go to home.html
-auth.onAuthStateChanged((user) => {
-    if (user) {
-        window.location.href = 'home.html';
-    }
-    // If not logged in, do nothing (stay on sign.html)
-});
+        // Check auth state - redirect if already logged in
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                window.location.href = 'home.html';
+            }
+        });
     </script>
 </body>
 </html>
