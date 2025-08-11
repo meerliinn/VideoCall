@@ -182,7 +182,7 @@
                 const purchaseAmount = firstPurchase.amount;
                 const productName = firstPurchase.productName;
                 
-                // Calculate 10% of the purchase amount as points
+                // Calculate 10% of the purchase amount as points (rounded down)
                 const pointsToAward = Math.floor(purchaseAmount * 0.1);
                 
                 // Confirm with admin
@@ -270,10 +270,12 @@
                         
                         let purchaseInfo = '';
                         if (firstPurchase) {
+                            // Calculate 10% of the purchase amount
+                            const pointsEarned = Math.floor(firstPurchase.amount * 0.1);
                             purchaseInfo = `<div class="purchase-info">
                                 <div>First Purchase: ${firstPurchase.productName}</div>
                                 <div>Amount: ${firstPurchase.amount} USDT</div>
-                                <div>Eligible Points: ${Math.floor(firstPurchase.amount * 0.1)}</div>
+                                <div>Eligible Points: ${pointsEarned}</div>
                             </div>`;
                         }
                         
