@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Referral Notifications</title>
+    <title>Referral Notifications - VideoCall</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -102,20 +102,39 @@
             background-color: #f0f0f0;
             border-radius: 4px;
         }
-        .deposit-info {
-            margin-top: 8px;
-            padding: 8px;
-            background-color: #e8f5e9;
-            border-radius: 4px;
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #007bff;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Referral Notifications</h1>
-        <div id="current-user" class="current-user"></div>
+        <div id="current-user" class="current-user">
+            <div class="loading">
+                <div class="spinner"></div>
+                <div>Loading user information...</div>
+            </div>
+        </div>
         <div id="notifications-container">
-            <div class="no-notifications">Loading notifications...</div>
+            <div class="loading">
+                <div class="spinner"></div>
+                <div>Loading notifications...</div>
+            </div>
         </div>
     </div>
 
@@ -146,79 +165,30 @@
         auth.onAuthStateChanged((user) => {
             if (user) {
                 currentAdminUid = user.uid;
-                document.getElementById('current-user').innerHTML = `
-                    <strong>Logged in as:</strong> ${user.email}<br>
-                    <strong>Your UID:</strong> ${user.uid}
-                `;
+                updateCurrentUserDisplay(user);
                 loadNotifications(user.uid);
-                
-                // Also listen for new deposits from referred users
-                setupDepositListener(user.uid);
             } else {
                 window.location.href = 'sign.html?tab=login';
             }
         });
 
-        // Set up listener for deposits from referred users
-        function setupDepositListener(adminUid) {
-            db.collection('deposits')
-                .where('referrerId', '==', adminUid)
-                .where('status', '==', 'completed')
-                .onSnapshot((snapshot) => {
-                    snapshot.docChanges().forEach((change) => {
-                        if (change.type === 'added') {
-                            const deposit = change.doc.data();
-                            handleNewDeposit(adminUid, deposit);
-                        }
-                    });
+        // Update current user display
+        function updateCurrentUserDisplay(user) {
+            document.getElementById('current-user').innerHTML = `
+                <strong>Logged in as:</strong> ${user.email || 'No email'}<br>
+                <strong>Your UID:</strong> ${user.uid}<br>
+                <strong>Your Referral Code:</strong> <span id="user-referral-code">Loading...</span>
+            `;
+            
+            // Load referral code from Firestore
+            db.collection('users').doc(user.uid).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        const referralCode = userData.referralCode || 'Not set';
+                        document.getElementById('user-referral-code').textContent = referralCode;
+                    }
                 });
-        }
-
-        // Handle new deposit from referred user
-        async function handleNewDeposit(adminUid, deposit) {
-            try {
-                // Check if this deposit has already been processed
-                if (deposit.referralProcessed) {
-                    return;
-                }
-                
-                // Calculate 10% of deposit amount as points
-                const pointsToAward = Math.floor(deposit.amount * 0.1);
-                
-                // Update deposit to mark as processed
-                await db.collection('deposits').doc(deposit.id).update({
-                    referralProcessed: true
-                });
-                
-                // Award points to admin in Firestore
-                await db.collection('users').doc(adminUid).update({
-                    points: firebase.firestore.FieldValue.increment(pointsToAward),
-                    totalEarnings: firebase.firestore.FieldValue.increment(pointsToAward),
-                    referralEarnings: firebase.firestore.FieldValue.increment(pointsToAward)
-                });
-                
-                // Also update in Realtime Database
-                await rdb.ref(`users/${adminUid}`).update({
-                    points: firebase.database.ServerValue.increment(pointsToAward)
-                });
-                
-                // Add to referral earnings history
-                const referralRecord = {
-                    type: 'referral_deposit',
-                    amount: pointsToAward,
-                    date: firebase.firestore.FieldValue.serverTimestamp(),
-                    referredUserId: deposit.userId,
-                    depositAmount: deposit.amount,
-                    depositId: deposit.id
-                };
-                
-                await db.collection('users').doc(adminUid).collection('earningHistory').add(referralRecord);
-                
-                console.log(`Awarded ${pointsToAward} points for deposit ${deposit.id} from user ${deposit.userId}`);
-                
-            } catch (error) {
-                console.error("Error processing deposit referral:", error);
-            }
         }
 
         // Get user's first purchase
@@ -232,144 +202,102 @@
                     .get();
                 
                 if (snapshot.empty) return null;
-                return snapshot.docs[0].data();
+                
+                const purchaseData = snapshot.docs[0].data();
+                return {
+                    id: snapshot.docs[0].id,
+                    ...purchaseData,
+                    purchaseDate: purchaseData.purchaseDate.toDate()
+                };
             } catch (error) {
                 console.error("Error checking user purchases:", error);
                 return null;
             }
         }
 
-        // Get user's first deposit
-        async function getUserFirstDeposit(userId) {
-            try {
-                const snapshot = await db.collection('deposits')
-                    .where('userId', '==', userId)
-                    .where('status', '==', 'completed')
-                    .orderBy('timestamp', 'asc')
-                    .limit(1)
-                    .get();
-                
-                if (snapshot.empty) return null;
-                return snapshot.docs[0].data();
-            } catch (error) {
-                console.error("Error checking user deposits:", error);
-                return null;
-            }
-        }
-
-        // Claim reward for a referred user's activity
+        // Claim reward for a referred user's first purchase
         async function claimReward(adminUid, notificationId, referredUserId) {
             try {
-                // First check for deposits
-                const firstDeposit = await getUserFirstDeposit(referredUserId);
-                
-                if (firstDeposit) {
-                    const depositAmount = firstDeposit.amount;
-                    const pointsToAward = Math.floor(depositAmount * 0.1);
-                    
-                    // Confirm with admin
-                    if (!confirm(`User deposited ${depositAmount} USDT.\n\nClaim ${pointsToAward} points (10% of deposit amount)?`)) {
-                        return;
-                    }
-                    
-                    // Update notification to mark as claimed
-                    await rdb.ref(`admin_notifications/${adminUid}/${notificationId}`).update({
-                        claimed: true,
-                        claimedAt: Date.now(),
-                        pointsAwarded: pointsToAward,
-                        depositAmount: depositAmount,
-                        read: true
-                    });
-                    
-                    // Award points to admin in Firestore
-                    await db.collection('users').doc(adminUid).update({
-                        points: firebase.firestore.FieldValue.increment(pointsToAward),
-                        totalEarnings: firebase.firestore.FieldValue.increment(pointsToAward),
-                        referralEarnings: firebase.firestore.FieldValue.increment(pointsToAward)
-                    });
-                    
-                    // Also update in Realtime Database
-                    await rdb.ref(`users/${adminUid}`).update({
-                        points: firebase.database.ServerValue.increment(pointsToAward)
-                    });
-                    
-                    // Add to referral earnings history
-                    const referralRecord = {
-                        type: 'referral',
-                        amount: pointsToAward,
-                        date: firebase.firestore.FieldValue.serverTimestamp(),
-                        referredUserId: referredUserId,
-                        depositAmount: depositAmount
-                    };
-                    
-                    await db.collection('users').doc(adminUid).collection('earningHistory').add(referralRecord);
-                    
-                    // Reload notifications
-                    loadNotifications(adminUid);
-                    
-                    alert(`Successfully claimed ${pointsToAward} points from ${referredUserId}'s deposit of ${depositAmount} USDT!`);
-                    return;
-                }
-                
-                // If no deposit, check for purchases
+                // First get the user's first purchase
                 const firstPurchase = await getUserFirstPurchase(referredUserId);
                 
-                if (firstPurchase) {
-                    const purchaseAmount = firstPurchase.amount;
-                    const productName = firstPurchase.productName;
-                    const pointsToAward = Math.floor(purchaseAmount * 0.1);
-                    
-                    // Confirm with admin
-                    if (!confirm(`User purchased ${productName} for ${purchaseAmount} USDT.\n\nClaim ${pointsToAward} points (10% of purchase amount)?`)) {
-                        return;
-                    }
-                    
-                    // Update notification to mark as claimed
-                    await rdb.ref(`admin_notifications/${adminUid}/${notificationId}`).update({
-                        claimed: true,
-                        claimedAt: Date.now(),
-                        pointsAwarded: pointsToAward,
-                        purchaseAmount: purchaseAmount,
-                        purchaseProduct: productName,
-                        read: true
-                    });
-                    
-                    // Award points to admin in Firestore
-                    await db.collection('users').doc(adminUid).update({
-                        points: firebase.firestore.FieldValue.increment(pointsToAward),
-                        totalEarnings: firebase.firestore.FieldValue.increment(pointsToAward),
-                        referralEarnings: firebase.firestore.FieldValue.increment(pointsToAward)
-                    });
-                    
-                    // Also update in Realtime Database
-                    await rdb.ref(`users/${adminUid}`).update({
-                        points: firebase.database.ServerValue.increment(pointsToAward)
-                    });
-                    
-                    // Add to referral earnings history
-                    const referralRecord = {
-                        type: 'referral',
-                        amount: pointsToAward,
-                        date: firebase.firestore.FieldValue.serverTimestamp(),
-                        referredUserId: referredUserId,
-                        purchaseAmount: purchaseAmount,
-                        productName: productName
-                    };
-                    
-                    await db.collection('users').doc(adminUid).collection('earningHistory').add(referralRecord);
-                    
-                    // Reload notifications
-                    loadNotifications(adminUid);
-                    
-                    alert(`Successfully claimed ${pointsToAward} points from ${referredUserId}'s purchase of ${productName}!`);
+                if (!firstPurchase) {
+                    alert('This user has not made any active purchases yet.');
+                    return;
+                }
+
+                const purchaseAmount = firstPurchase.amount;
+                const productName = firstPurchase.productName;
+                const pointsToAward = Math.floor(purchaseAmount * 0.1);
+                
+                // Confirm with admin
+                if (!confirm(`User purchased ${productName} for ${purchaseAmount} USDT.\n\nClaim ${pointsToAward} points (10% of purchase amount)?`)) {
                     return;
                 }
                 
-                alert('This user has not made any deposits or purchases yet.');
+                // Create a batch for atomic operations
+                const batch = db.batch();
+                
+                // Update notification to mark as claimed
+                const notificationRef = rdb.ref(`admin_notifications/${adminUid}/${notificationId}`);
+                await notificationRef.update({
+                    claimed: true,
+                    claimedAt: Date.now(),
+                    pointsAwarded: pointsToAward,
+                    purchaseAmount: purchaseAmount,
+                    purchaseProduct: productName,
+                    read: true
+                });
+                
+                // Update admin's points in Firestore
+                const adminRef = db.collection('users').doc(adminUid);
+                batch.update(adminRef, {
+                    points: firebase.firestore.FieldValue.increment(pointsToAward),
+                    totalEarnings: firebase.firestore.FieldValue.increment(pointsToAward),
+                    referralEarnings: firebase.firestore.FieldValue.increment(pointsToAward)
+                });
+                
+                // Add to referral earnings history
+                const referralRecord = {
+                    type: 'referral',
+                    amount: pointsToAward,
+                    date: firebase.firestore.FieldValue.serverTimestamp(),
+                    referredUserId: referredUserId,
+                    purchaseAmount: purchaseAmount,
+                    productName: productName,
+                    notificationId: notificationId
+                };
+                
+                const historyRef = adminRef.collection('earningHistory').doc();
+                batch.set(historyRef, referralRecord);
+                
+                // Commit the batch
+                await batch.commit();
+                
+                // Also update in Realtime Database
+                await rdb.ref(`users/${adminUid}/points`).transaction((currentPoints) => {
+                    return (currentPoints || 0) + pointsToAward;
+                });
+                
+                // Reload notifications
+                loadNotifications(adminUid);
+                
+                alert(`Successfully claimed ${pointsToAward} points from ${referredUserId}'s purchase of ${productName}!`);
                 
             } catch (error) {
                 console.error("Error claiming reward:", error);
                 alert('Error claiming reward. Please try again.');
+            }
+        }
+
+        // Mark notification as read
+        async function markNotificationAsRead(adminUid, notificationId) {
+            try {
+                await rdb.ref(`admin_notifications/${adminUid}/${notificationId}`).update({
+                    read: true
+                });
+            } catch (error) {
+                console.error("Error marking notification as read:", error);
             }
         }
 
@@ -378,7 +306,10 @@
             const container = document.getElementById('notifications-container');
             
             // Listen for notifications in admin_notifications path
-            rdb.ref('admin_notifications/' + adminUid).orderByChild('timestamp').on('value', (snapshot) => {
+            const notificationsRef = rdb.ref('admin_notifications/' + adminUid);
+            
+            // Order by timestamp and limit to 100 most recent
+            notificationsRef.orderByChild('timestamp').limitToLast(100).on('value', async (snapshot) => {
                 if (!snapshot.exists()) {
                     container.innerHTML = '<div class="no-notifications">No notifications yet</div>';
                     return;
@@ -386,72 +317,79 @@
 
                 const notificationList = [];
                 snapshot.forEach(childSnapshot => {
+                    const notif = childSnapshot.val();
                     notificationList.push({
                         id: childSnapshot.key,
-                        ...childSnapshot.val()
+                        ...notif,
+                        // Ensure we have all required fields
+                        email: notif.email || 'No email',
+                        userId: notif.userId || 'Unknown',
+                        timestamp: notif.timestamp || Date.now(),
+                        claimed: notif.claimed || false,
+                        read: notif.read || false
                     });
                 });
                 
                 // Sort by timestamp (newest first)
                 notificationList.sort((a, b) => b.timestamp - a.timestamp);
                 
-                container.innerHTML = '';
-                notificationList.forEach(notif => {
-                    const div = document.createElement('div');
-                    div.className = `notification ${notif.read ? '' : 'unread'}`;
+                // Clear container and show loading state
+                container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading notifications...</div></div>';
+                
+                // Process each notification
+                const processedNotifications = await Promise.all(notificationList.map(async notif => {
+                    // Mark as read when viewed
+                    if (!notif.read) {
+                        await markNotificationAsRead(adminUid, notif.id);
+                    }
+                    
+                    // Check if this referred user has made any purchases
+                    const firstPurchase = await getUserFirstPurchase(notif.userId);
+                    const hasPurchased = firstPurchase !== null;
+                    const status = notif.claimed ? 'claimed' : (hasPurchased ? 'pending' : 'unclaimed');
+                    
+                    let purchaseInfo = '';
+                    if (firstPurchase) {
+                        purchaseInfo = `<div class="purchase-info">
+                            <div>First Purchase: ${firstPurchase.productName}</div>
+                            <div>Amount: ${firstPurchase.amount} USDT</div>
+                            <div>Eligible Points: ${Math.floor(firstPurchase.amount * 0.1)}</div>
+                        </div>`;
+                    }
+                    
                     const date = new Date(notif.timestamp);
                     
-                    // Check if this referred user has made any deposits or purchases
-                    Promise.all([
-                        getUserFirstDeposit(notif.userId),
-                        getUserFirstPurchase(notif.userId)
-                    ]).then(([firstDeposit, firstPurchase]) => {
-                        const hasDeposit = firstDeposit !== null;
-                        const hasPurchase = firstPurchase !== null;
-                        const status = notif.claimed ? 'claimed' : 
-                                      (hasDeposit || hasPurchase) ? 'pending' : 'unclaimed';
-                        
-                        let activityInfo = '';
-                        if (firstDeposit) {
-                            activityInfo = `<div class="deposit-info">
-                                <div>First Deposit: ${firstDeposit.amount} USDT</div>
-                                <div>Eligible Points: ${Math.floor(firstDeposit.amount * 0.1)}</div>
-                            </div>`;
-                        }
-                        if (firstPurchase) {
-                            activityInfo += `<div class="purchase-info">
-                                <div>First Purchase: ${firstPurchase.productName}</div>
-                                <div>Amount: ${firstPurchase.amount} USDT</div>
-                                <div>Eligible Points: ${Math.floor(firstPurchase.amount * 0.1)}</div>
-                            </div>`;
-                        }
-                        
-                        div.innerHTML = `
+                    return `
+                        <div class="notification ${notif.read ? '' : 'unread'}">
                             <div>
-                                <span class="email">${notif.email}</span> signed up using your UID
+                                <span class="email">${notif.email}</span> signed up using your referral
                                 <div class="user-details">
                                     <div class="time">${date.toLocaleString()}</div>
                                     <div>User ID: ${notif.userId}</div>
                                     ${notif.firstName ? `<div>Name: ${notif.firstName} ${notif.lastName || ''}</div>` : ''}
                                 </div>
-                                ${activityInfo}
+                                ${purchaseInfo}
                                 <span class="status-badge ${status}">
                                     ${status === 'claimed' ? '✓ Claimed' : 
-                                     status === 'pending' ? '★ Ready to Claim' : '⌛ Waiting for Activity'}
+                                     status === 'pending' ? '★ Ready to Claim' : '⌛ Waiting for Purchase'}
                                 </span>
                             </div>
                             <div class="actions">
-                                ${!notif.claimed && (hasDeposit || hasPurchase) ? 
+                                ${!notif.claimed && hasPurchased ? 
                                     `<button class="claim-btn" onclick="claimReward('${adminUid}', '${notif.id}', '${notif.userId}')">
-                                        Claim ${hasDeposit ? Math.floor(firstDeposit.amount * 0.1) : Math.floor(firstPurchase.amount * 0.1)} Points
+                                        Claim ${Math.floor(firstPurchase.amount * 0.1)} Points
                                     </button>` : 
                                     notif.claimed ? '✓ Claimed' : ''}
                             </div>
-                        `;
-                        
-                        container.appendChild(div);
-                    });
-                });
+                        </div>
+                    `;
+                }));
+                
+                // Update the container with all notifications
+                container.innerHTML = processedNotifications.join('') || '<div class="no-notifications">No notifications found</div>';
+            }, (error) => {
+                console.error("Error loading notifications:", error);
+                container.innerHTML = '<div class="no-notifications">Error loading notifications</div>';
             });
         }
     </script>
