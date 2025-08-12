@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Withdrawal Security Data</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #007bff;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --dark: #343a40;
+            --light: #f8f9fa;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1, h2, h3 {
+            color: #333;
+            margin-top: 0;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: var(--light);
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .alert {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+        
+        .search-box {
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 5px;
+        }
+        
+        .page-btn {
+            padding: 8px 12px;
+            background: var(--light);
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+        
+        .page-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Withdrawal Security Data</h1>
+        
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search by user ID or email..." onkeyup="searchData()">
+        </div>
+        
+        <div id="data-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Email</th>
+                        <th>Withdrawal Code</th>
+                        <th>Created At</th>
+                        <th>Updated At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="data-body">
+                    <tr>
+                        <td colspan="6" class="loading">Loading withdrawal security data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Global variables
+        let allSecurityData = [];
+        let currentPage = 1;
+        const itemsPerPage = 10;
+
+        // Check authentication state
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'sign.html';
+            } else {
+                loadWithdrawalSecurityData();
+            }
+        });
+
+        // Load all withdrawal security data
+        async function loadWithdrawalSecurityData() {
+            try {
+                const dataBody = document.getElementById('data-body');
+                dataBody.innerHTML = '<tr><td colspan="6" class="loading">Loading withdrawal security data...</td></tr>';
+                
+                const snapshot = await db.collection('withdrawalSecurity').get();
+                allSecurityData = [];
+                
+                // Get user emails for each security record
+                const promises = [];
+                snapshot.forEach(doc => {
+                    const promise = db.collection('users').doc(doc.id).get()
+                        .then(userDoc => {
+                            if (userDoc.exists) {
+                                allSecurityData.push({
+                                    id: doc.id,
+                                    email: userDoc.data().email || 'N/A',
+                                    ...doc.data()
+                                });
+                            } else {
+                                allSecurityData.push({
+                                    id: doc.id,
+                                    email: 'User not found',
+                                    ...doc.data()
+                                });
+                            }
+                        });
+                    promises.push(promise);
+                });
+                
+                await Promise.all(promises);
+                
+                // Sort by updatedAt descending
+                allSecurityData.sort((a, b) => {
+                    const aDate = a.updatedAt?.toDate() || new Date(0);
+                    const bDate = b.updatedAt?.toDate() || new Date(0);
+                    return bDate - aDate;
+                });
+                
+                displayData(currentPage);
+                setupPagination();
+            } catch (error) {
+                console.error("Error loading withdrawal security data:", error);
+                document.getElementById('data-body').innerHTML = '<tr><td colspan="6">Error loading data</td></tr>';
+            }
+        }
+
+        // Display data with pagination
+        function displayData(page) {
+            currentPage = page;
+            const dataBody = document.getElementById('data-body');
+            dataBody.innerHTML = '';
+            
+            const startIndex = (page - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const dataToDisplay = allSecurityData.slice(startIndex, endIndex);
+            
+            if (dataToDisplay.length === 0) {
+                dataBody.innerHTML = '<tr><td colspan="6">No data found</td></tr>';
+                return;
+            }
+            
+            dataToDisplay.forEach(item => {
+                const createdAt = item.createdAt?.toDate() || new Date(0);
+                const updatedAt = item.updatedAt?.toDate() || new Date(0);
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.id}</td>
+                    <td>${item.email}</td>
+                    <td>${item.code}</td>
+                    <td>${createdAt.toLocaleString()}</td>
+                    <td>${updatedAt.toLocaleString()}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="resetCode('${item.id}')">
+                            <i class="fas fa-sync-alt"></i> Reset Code
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteRecord('${item.id}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
+                `;
+                dataBody.appendChild(row);
+            });
+        }
+
+        // Setup pagination
+        function setupPagination() {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            
+            const totalPages = Math.ceil(allSecurityData.length / itemsPerPage);
+            
+            if (totalPages <= 1) return;
+            
+            // Previous button
+            if (currentPage > 1) {
+                const prevBtn = document.createElement('button');
+                prevBtn.className = 'page-btn';
+                prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                prevBtn.onclick = () => {
+                    displayData(currentPage - 1);
+                };
+                pagination.appendChild(prevBtn);
+            }
+            
+            // Page buttons
+            for (let i = 1; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => {
+                    displayData(i);
+                };
+                pagination.appendChild(pageBtn);
+            }
+            
+            // Next button
+            if (currentPage < totalPages) {
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'page-btn';
+                nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                nextBtn.onclick = () => {
+                    displayData(currentPage + 1);
+                };
+                pagination.appendChild(nextBtn);
+            }
+        }
+
+        // Search data
+        function searchData() {
+            const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
+            
+            if (!searchTerm) {
+                displayData(currentPage);
+                return;
+            }
+            
+            const filteredData = allSecurityData.filter(item => 
+                item.id.toLowerCase().includes(searchTerm) ||
+                item.email.toLowerCase().includes(searchTerm) ||
+                item.code.toLowerCase().includes(searchTerm)
+            );
+            
+            // Temporarily replace allSecurityData with filtered results
+            const originalData = allSecurityData;
+            allSecurityData = filteredData;
+            
+            displayData(1);
+            setupPagination();
+            
+            // Restore original data
+            allSecurityData = originalData;
+        }
+
+        // Reset withdrawal code
+        async function resetCode(userId) {
+            if (!confirm('Are you sure you want to reset this withdrawal code?')) return;
+            
+            try {
+                const code = Math.floor(1000 + Math.random() * 9000).toString();
+                await db.collection('withdrawalSecurity').doc(userId).update({
+                    code: code,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert(`Withdrawal code reset successfully. New code: ${code}`);
+                loadWithdrawalSecurityData();
+            } catch (error) {
+                console.error("Error resetting withdrawal code:", error);
+                alert('Failed to reset withdrawal code');
+            }
+        }
+
+        // Delete record
+        async function deleteRecord(userId) {
+            if (!confirm('Are you sure you want to delete this withdrawal security record?')) return;
+            
+            try {
+                await db.collection('withdrawalSecurity').doc(userId).delete();
+                alert('Record deleted successfully');
+                loadWithdrawalSecurityData();
+            } catch (error) {
+                console.error("Error deleting record:", error);
+                alert('Failed to delete record');
+            }
+        }
+    </script>
+</body>
+</html>
